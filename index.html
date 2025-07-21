@@ -35,7 +35,8 @@
                 <form id="professor-form">
                     <div class="form-group">
                         <label for="prof-name">اسم الدكتور:</label>
-                        <input type="text" id="prof-name" name="profName" required>
+                        <input type="text" id="prof-name" name="profName" required list="prof-names-suggestions">
+                        <datalist id="prof-names-suggestions"></datalist>
                     </div>
                     <div class="form-group">
                         <label for="prof-available-times">الأوقات المتاحة (مثال: الأحد:8:00-10:00, الاثنين:10:00-12:00):</label>
@@ -71,7 +72,8 @@
                 <form id="room-form">
                     <div class="form-group">
                         <label for="room-name">اسم القاعة/المعمل:</label>
-                        <input type="text" id="room-name" name="roomName" required>
+                        <input type="text" id="room-name" name="roomName" required list="room-names-suggestions">
+                        <datalist id="room-names-suggestions"></datalist>
                     </div>
                     <div class="form-group">
                         <label for="room-type">النوع:</label>
@@ -103,11 +105,17 @@
                 <form id="course-form">
                     <div class="form-group">
                         <label for="course-name">اسم المادة:</label>
-                        <input type="text" id="course-name" name="courseName" required>
+                        <input type="text" id="course-name" name="courseName" required list="course-names-suggestions">
+                        <datalist id="course-names-suggestions"></datalist>
                     </div>
                     <div class="form-group">
                         <label for="course-section-name">اسم الشعبة/الرمز (مثال: أ، ب، 101A):</label>
                         <input type="text" id="course-section-name" name="courseSectionName" placeholder="اختياري">
+                    </div>
+                    <div class="form-group">
+                        <label for="course-department">القسم/البرنامج:</label>
+                        <input type="text" id="course-department" name="courseDepartment" placeholder="اختياري" list="department-suggestions">
+                        <datalist id="department-suggestions"></datalist>
                     </div>
                     <div class="form-group">
                         <label for="course-professor-id">الدكتور المسؤول:</label>
@@ -147,6 +155,7 @@
             <div class="schedule-controls">
                 <button id="generate-schedule"><i class="fas fa-magic"></i> توليد الجدول تلقائياً</button>
                 <button id="optimize-schedule-btn"><i class="fas fa-arrows-alt-h"></i> تحسين الجدول (تقليل الفجوات)</button>
+                <button id="fix-all-conflicts-btn" class="delete-btn"><i class="fas fa-wrench"></i> إصلاح جميع التعارضات</button>
                 <button id="save-current-schedule"><i class="fas fa-save"></i> حفظ الجدول الحالي كنسخة</button>
                 <button id="load-saved-schedules"><i class="fas fa-folder-open"></i> تحميل جدول محفوظ</button>
             </div>
@@ -207,6 +216,34 @@
 
         <section id="settings">
             <h2>الإعدادات والتصدير</h2>
+
+            <div class="form-container">
+                <h3>إدارة الفترات الزمنية</h3>
+                <form id="time-slots-form">
+                    <div class="form-group">
+                        <label for="custom-time-slots">الفترات الزمنية (كل فترة في سطر جديد، مثال: 08:00-09:40):</label>
+                        <textarea id="custom-time-slots" rows="5" placeholder="أدخل كل فترة زمنية في سطر جديد"></textarea>
+                    </div>
+                    <button type="submit"><i class="fas fa-sync-alt"></i> تحديث الفترات الزمنية</button>
+                </form>
+            </div>
+
+            <div class="form-container">
+                <h3>إدارة الفصول الدراسية</h3>
+                <form id="academic-period-form">
+                    <div class="form-group">
+                        <label for="current-academic-year">السنة الأكاديمية الحالية:</label>
+                        <input type="number" id="current-academic-year" name="currentAcademicYear" value="2024">
+                    </div>
+                    <div class="form-group">
+                        <label for="current-academic-semester">الفصل الدراسي الحالي:</label>
+                        <input type="text" id="current-academic-semester" name="currentAcademicSemester" value="الأول">
+                    </div>
+                    <button type="submit"><i class="fas fa-save"></i> حفظ الفترة الأكاديمية</button>
+                </form>
+            </div>
+
+
             <p>اختر صيغة التصدير للجدول الحالي:</p>
             <button id="export-pdf"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
             <button id="export-excel"><i class="fas fa-file-excel"></i> تصدير Excel (ملف .xlsx)</button>
