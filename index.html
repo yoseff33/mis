@@ -9,17 +9,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script> </head>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
 <body>
     <header>
         <h1>نظام إدارة الجداول الدراسية الذكي</h1>
         <nav>
             <ul>
-                <li><a href="#data-entry" data-section="data-entry">إدخال البيانات</a></li>
-                <li><a href="#schedule-view" data-section="schedule-view">عرض الجداول</a></li>
-                <li><a href="#reports" data-section="reports">التقارير والإحصائيات</a></li>
-                <li><a href="#professor-schedules" data-section="professor-schedules">جداول الدكاترة</a></li>
-                <li><a href="#settings" data-section="settings">الإعدادات والتصدير</a></li>
+                <li><a href="#data-entry" data-section="data-entry"><i class="fas fa-database"></i> إدخال البيانات</a></li>
+                <li><a href="#schedule-view" data-section="schedule-view"><i class="fas fa-calendar-alt"></i> عرض الجداول</a></li>
+                <li><a href="#reports" data-section="reports"><i class="fas fa-chart-bar"></i> التقارير والإحصائيات</a></li>
+                <li><a href="#professor-schedules" data-section="professor-schedules"><i class="fas fa-user-tie"></i> جداول الدكاترة</a></li>
+                <li><a href="#settings" data-section="settings"><i class="fas fa-cog"></i> الإعدادات والتصدير</a></li>
             </ul>
         </nav>
     </header>
@@ -47,7 +48,7 @@
                         <input type="checkbox" id="prof-no-friday" name="profNoFriday">
                         <label for="prof-no-friday">لا يفضل التدريس يوم الجمعة</label>
                     </div>
-                    <button type="submit">إضافة دكتور</button>
+                    <button type="submit"><i class="fas fa-plus-circle"></i> إضافة دكتور</button>
                 </form>
                 <div class="form-group" style="margin-top: 20px;">
                     <label for="upload-professors">رفع ملف CSV/Excel للدكاترة (اختياري):</label>
@@ -79,7 +80,7 @@
                         <label for="room-available-times">الأوقات المتاحة (مثال: الأحد:8:00-18:00):</label>
                         <textarea id="room-available-times" name="roomAvailableTimes" rows="2" placeholder="أدخل الأيام والأوقات مفصولة بفواصل"></textarea>
                     </div>
-                    <button type="submit">إضافة قاعة/معمل</button>
+                    <button type="submit"><i class="fas fa-plus-circle"></i> إضافة قاعة/معمل</button>
                 </form>
                 <div class="form-group" style="margin-top: 20px;">
                     <label for="upload-rooms">رفع ملف CSV/Excel للقاعات (اختياري):</label>
@@ -118,7 +119,7 @@
                         <label for="course-notes">ملاحظات على المادة (اختياري):</label>
                         <textarea id="course-notes" name="courseNotes" rows="2"></textarea>
                     </div>
-                    <button type="submit">إضافة مادة</button>
+                    <button type="submit"><i class="fas fa-plus-circle"></i> إضافة مادة</button>
                 </form>
                 <div class="form-group" style="margin-top: 20px;">
                     <label for="upload-courses">رفع ملف CSV/Excel للمواد (اختياري):</label>
@@ -132,9 +133,9 @@
         <section id="schedule-view">
             <h2>عرض وتعديل الجداول</h2>
             <div class="schedule-controls">
-                <button id="generate-schedule">توليد الجدول تلقائياً</button>
-                <button id="save-current-schedule">حفظ الجدول الحالي كنسخة</button>
-                <button id="load-saved-schedules">تحميل جدول محفوظ</button>
+                <button id="generate-schedule"><i class="fas fa-magic"></i> توليد الجدول تلقائياً</button>
+                <button id="save-current-schedule"><i class="fas fa-save"></i> حفظ الجدول الحالي كنسخة</button>
+                <button id="load-saved-schedules"><i class="fas fa-folder-open"></i> تحميل جدول محفوظ</button>
             </div>
             <div id="conflict-alerts" class="alert"></div>
             <div id="schedule-grid"></div>
@@ -178,8 +179,8 @@
                             <label for="edit-appt-notes">ملاحظات:</label>
                             <textarea id="edit-appt-notes" name="notes" rows="2"></textarea>
                         </div>
-                        <button type="submit">حفظ التعديلات</button>
-                        <button type="button" id="delete-appt-btn" class="delete-btn" style="margin-right: 10px;">حذف الموعد</button>
+                        <button type="submit"><i class="fas fa-save"></i> حفظ التعديلات</button>
+                        <button type="button" id="delete-appt-btn" class="delete-btn" style="margin-right: 10px;"><i class="fas fa-trash-alt"></i> حذف الموعد</button>
                     </form>
                 </div>
             </div>
@@ -194,9 +195,9 @@
         <section id="settings">
             <h2>الإعدادات والتصدير</h2>
             <p>اختر صيغة التصدير للجدول الحالي:</p>
-            <button id="export-pdf">تصدير PDF</button>
-            <button id="export-excel">تصدير Excel (ملف .xlsx)</button>
-            <button id="export-image">تصدير صورة</button>
+            <button id="export-pdf"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
+            <button id="export-excel"><i class="fas fa-file-excel"></i> تصدير Excel (ملف .xlsx)</button>
+            <button id="export-image"><i class="fas fa-image"></i> تصدير صورة</button>
             <p style="margin-top: 20px; font-style: italic;">ملاحظة: تصدير PDF والصورة يلتقط ما يظهر على الشاشة في قسم "عرض الجداول".</p>
         </section>
     </main>
