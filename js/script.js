@@ -1,42 +1,88 @@
 // js/script.js
 
 // ======================================================
-// Global Constants & Helpers (utils.js equivalent)
+// Global Constants & Helpers
 // ======================================================
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
 const TIME_SLOTS = [
     "8:00-9:40", "10:00-11:40", "12:00-13:40", "14:00-15:40", "16:00-17:40"
-];
+]; // Standard slot duration: 100 minutes
 
+/**
+ * Gets the Arabic name of a day by its index (0=Sunday, 1=Monday, etc.).
+ * @param {number} dayIndex
+ * @returns {string} Day name
+ */
 const getDayName = (dayIndex) => {
     const days = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
     return days[dayIndex];
 };
 
+/**
+ * Parses a time range string "HH:MM-HH:MM" into start and end times.
+ * @param {string} timeRange e.g., "8:00-9:40"
+ * @returns {{start: string, end: string} | null} Parsed times or null if invalid
+ */
 const parseTimeRange = (timeRange) => {
+    if (typeof timeRange !== 'string' || !timeRange.includes('-')) {
+        console.error("Invalid time range string:", timeRange);
+        return null; // Return null for invalid input
+    }
     const [start, end] = timeRange.split('-');
-    return { start, end };
+    return { start: start.trim(), end: end.trim() };
 };
 
+/**
+ * Converts a time string "HH:MM" to minutes from midnight.
+ * @param {string} timeStr e.g., "08:00"
+ * @returns {number | null} Minutes from midnight or null if invalid
+ */
 const toMinutes = (timeStr) => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + minutes;
+    if (typeof timeStr !== 'string' || !timeStr.includes(':')) {
+        // console.warn("Invalid time string passed to toMinutes:", timeStr); // Use warn instead of error for less critical issues
+        return null; // Return null for invalid input
+    }
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
+        // console.warn("Invalid time format in toMinutes:", timeStr);
+        return null;
+    }
+    return parts[0] * 60 + parts[1];
 };
 
+/**
+ * Checks if two time intervals conflict.
+ * @param {string} time1Start
+ * @param {string} time1End
+ * @param {string} time2Start
+ * @param {string} time2End
+ * @returns {boolean} True if conflicts, false otherwise
+ */
 const isTimeConflict = (time1Start, time1End, time2Start, time2End) => {
     const t1s = toMinutes(time1Start);
     const t1e = toMinutes(time1End);
     const t2s = toMinutes(time2Start);
     const t2e = toMinutes(time2End);
+
+    // If any time conversion failed, treat as no conflict (or handle as an error upstream)
+    if (t1s === null || t1e === null || t2s === null || t2e === null) {
+        // console.warn("Skipping time conflict check due to invalid time string.");
+        return false;
+    }
+
     return Math.max(t1s, t2s) < Math.min(t1e, t2e);
 };
 
+/**
+ * Generates a unique ID for new data entries.
+ * @returns {string} Unique ID
+ */
 const generateUniqueId = () => {
     return '_' + Math.random().toString(36).substr(2, 9);
 };
 
 // ======================================================
-// Data Management (data.js equivalent)
+// Data Management (LocalStorage CRUD)
 // ======================================================
 const STORAGE_KEYS = {
     PROFESSORS: 'professors',
@@ -86,6 +132,9 @@ const updateProfessor = (id, updatedFields) => {
 };
 const deleteProfessor = (id) => {
     professors = professors.filter(p => p.id !== id);
+    // Also remove any courses taught by this professor or scheduled appointments
+    courses = courses.map(c => c.professorId === id ? { ...c, professorId: null } : c);
+    currentSchedule = currentSchedule.filter(appt => appt.professorId !== id);
     saveData();
 };
 
@@ -105,6 +154,8 @@ const updateRoom = (id, updatedFields) => {
 };
 const deleteRoom = (id) => {
     rooms = rooms.filter(r => r.id !== id);
+    // Also remove any scheduled appointments in this room
+    currentSchedule = currentSchedule.filter(appt => appt.roomId !== id);
     saveData();
 };
 
@@ -124,6 +175,7 @@ const updateCourse = (id, updatedFields) => {
 };
 const deleteCourse = (id) => {
     courses = courses.filter(c => c.id !== id);
+    currentSchedule = currentSchedule.filter(appt => appt.courseId !== id);
     saveData();
 };
 
@@ -135,6 +187,10 @@ const setCurrentSchedule = (schedule) => {
 };
 
 const saveScheduleVersion = (name) => {
+    if (currentSchedule.length === 0) {
+        showAlert('لا يوجد جدول حالي لحفظه كنسخة.', 'warning');
+        return;
+    }
     schedules.push({ id: generateUniqueId(), name: name, timestamp: new Date(), schedule: [...currentSchedule] });
     saveData();
     showAlert(`تم حفظ نسخة من الجدول باسم: ${name}`, 'success');
@@ -184,29 +240,32 @@ const uploadFile = (file, type) => {
             }
             const reader = new FileReader();
             reader.onload = (e) => {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Read as array of arrays
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Read as array of arrays
 
-                if (json.length === 0) {
-                    reject("ملف Excel فارغ أو لا يحتوي على بيانات.");
-                    return;
-                }
-                
-                // Assuming the first row is header. Convert to object array.
-                const header = json[0];
-                const rows = json.slice(1);
-                const jsonData = rows.map(row => {
-                    const obj = {};
-                    header.forEach((h, i) => {
-                        obj[h] = row[i];
+                    if (json.length < 2) { // Minimum 2 rows: header + at least one data row
+                        reject("ملف Excel فارغ أو لا يحتوي على بيانات كافية.");
+                        return;
+                    }
+                    
+                    const header = json[0];
+                    const rows = json.slice(1);
+                    const jsonData = rows.map(row => {
+                        const obj = {};
+                        header.forEach((h, i) => {
+                            obj[h.trim()] = row[i]; // Trim header keys
+                        });
+                        return obj;
                     });
-                    return obj;
-                });
-                
-                processUploadedData(jsonData, type, resolve, reject);
+                    
+                    processUploadedData(jsonData, type, resolve, reject);
+                } catch (error) {
+                    reject(`خطأ في معالجة ملف Excel: ${error.message}`);
+                }
             };
             reader.onerror = (err) => {
                 reject(`فشل قراءة ملف Excel: ${err.message}`);
@@ -221,29 +280,30 @@ const uploadFile = (file, type) => {
 
 const processUploadedData = (data, type, resolve, reject) => {
     try {
+        let newEntries = [];
         switch (type) {
             case 'professors':
-                const newProfessors = data.map(row => ({
+                newEntries = data.map(row => ({
                     id: generateUniqueId(),
                     name: String(row.name || 'غير معروف'),
                     availableTimes: String(row.availableTimes || '').split(';').map(s => s.trim()).filter(s => s),
                     priority: parseInt(row.priority) || 0,
                     preferences: row.preferences ? JSON.parse(String(row.preferences)) : {}
                 }));
-                professors = [...professors, ...newProfessors];
+                professors = [...professors, ...newEntries];
                 break;
             case 'rooms':
-                const newRooms = data.map(row => ({
+                newEntries = data.map(row => ({
                     id: generateUniqueId(),
                     name: String(row.name || 'غير معروف'),
                     type: String(row.type || 'lecture'),
                     availableTimes: String(row.availableTimes || '').split(';').map(s => s.trim()).filter(s => s),
-                    locationGroup: String(row.locationGroup || '') // New field for room location
+                    locationGroup: String(row.locationGroup || '')
                 }));
-                rooms = [...rooms, ...newRooms];
+                rooms = [...rooms, ...newEntries];
                 break;
             case 'courses':
-                const newCourses = data.map(row => ({
+                newEntries = data.map(row => ({
                     id: generateUniqueId(),
                     name: String(row.name || 'غير معروف'),
                     professorId: String(row.professorId || null),
@@ -252,14 +312,14 @@ const processUploadedData = (data, type, resolve, reject) => {
                     preferredTimes: String(row.preferredTimes || '').split(';').map(s => s.trim()).filter(s => s),
                     notes: String(row.notes || '')
                 }));
-                courses = [...courses, ...newCourses];
+                courses = [...courses, ...newEntries];
                 break;
             default:
                 reject("نوع بيانات غير معروف.");
                 return;
         }
         saveData();
-        resolve(`تم رفع ملف ${type} بنجاح.`);
+        resolve(`تم رفع ملف ${type} بنجاح. تم إضافة ${newEntries.length} سجل جديد.`);
     } catch (e) {
         console.error("Error processing uploaded data:", e);
         reject(`فشل معالجة البيانات من الملف: ${e.message}`);
@@ -268,24 +328,29 @@ const processUploadedData = (data, type, resolve, reject) => {
 
 const initializeDummyData = () => {
     professors = [
-        { id: 'p1', name: "د. أحمد", availableTimes: ["الأحد:8:00-9:40", "الاثنين:10:00-11:40", "الأربعاء:14:00-15:40"], priority: 1, preferences: { noFriday: true } },
-        { id: 'p2', name: "د. سارة", availableTimes: ["الاثنين:8:00-9:40", "الثلاثاء:10:00-11:40", "الخميس:12:00-13:40"], priority: 2, preferences: {} },
-        { id: 'p3', name: "د. خالد", availableTimes: ["الأحد:12:00-13:40", "الثلاثاء:8:00-9:40", "الخميس:10:00-11:40"], priority: 3, preferences: {} },
+        { id: 'p1', name: "د. أحمد", availableTimes: ["الأحد:08:00-09:40", "الاثنين:10:00-11:40", "الأربعاء:14:00-15:40"], priority: 1, preferences: { noFriday: true } },
+        { id: 'p2', name: "د. سارة", availableTimes: ["الاثنين:08:00-09:40", "الثلاثاء:10:00-11:40", "الخميس:12:00-13:40"], priority: 2, preferences: {} },
+        { id: 'p3', name: "د. خالد", availableTimes: ["الأحد:12:00-13:40", "الثلاثاء:08:00-09:40", "الخميس:10:00-11:40"], priority: 3, preferences: {} },
+        { id: 'p4', name: "د. فاطمة", availableTimes: ["الأحد:10:00-11:40", "الأربعاء:08:00-09:40", "الخميس:14:00-15:40"], priority: 4, preferences: { noMonday: true } },
+
     ];
     rooms = [
-        { id: 'r1', name: "قاعة 101", type: "lecture", availableTimes: ["الأحد:8:00-18:00", "الاثنين:8:00-18:00", "الثلاثاء:8:00-18:00", "الأربعاء:8:00-18:00", "الخميس:8:00-18:00"], locationGroup: "مبنى أ" },
-        { id: 'r2', name: "معمل B", type: "lab", availableTimes: ["الأحد:8:00-18:00", "الاثنين:8:00-18:00", "الثلاثاء:8:00-18:00", "الأربعاء:8:00-18:00", "الخميس:8:00-18:00"], locationGroup: "مبنى ب" },
-        { id: 'r3', name: "قاعة 205", type: "lecture", availableTimes: ["الأحد:8:00-18:00", "الاثنين:8:00-18:00", "الثلاثاء:8:00-18:00", "الأربعاء:8:00-18:00", "الخميس:8:00-18:00"], locationGroup: "مبنى أ" },
-        { id: 'r4', name: "معمل C", type: "lab", availableTimes: ["الأحد:8:00-18:00", "الاثنين:8:00-18:00", "الثلاثاء:8:00-18:00", "الأربعاء:8:00-18:00", "الخميس:8:00-18:00"], locationGroup: "مبنى ج" },
+        { id: 'r1', name: "قاعة 101", type: "lecture", availableTimes: ["الأحد:08:00-18:00", "الاثنين:08:00-18:00", "الثلاثاء:08:00-18:00", "الأربعاء:08:00-18:00", "الخميس:08:00-18:00"], locationGroup: "مبنى أ" },
+        { id: 'r2', name: "معمل B", type: "lab", availableTimes: ["الأحد:08:00-18:00", "الاثنين:08:00-18:00", "الثلاثاء:08:00-18:00", "الأربعاء:08:00-18:00", "الخميس:08:00-18:00"], locationGroup: "مبنى ب" },
+        { id: 'r3', name: "قاعة 205", type: "lecture", availableTimes: ["الأحد:08:00-18:00", "الاثنين:08:00-18:00", "الثلاثاء:08:00-18:00", "الأربعاء:08:00-18:00", "الخميس:08:00-18:00"], locationGroup: "مبنى أ" },
+        { id: 'r4', name: "معمل C", type: "lab", availableTimes: ["الأحد:08:00-18:00", "الاثنين:08:00-18:00", "الثلاثاء:08:00-18:00", "الأربعاء:08:00-18:00", "الخميس:08:00-18:00"], locationGroup: "مبنى ج" },
+        { id: 'r5', name: "قاعة 300", type: "lecture", availableTimes: ["الأحد:08:00-18:00", "الاثنين:08:00-18:00", "الثلاثاء:08:00-18:00", "الأربعاء:08:00-18:00", "الخميس:08:00-18:00"], locationGroup: "مبنى د" },
 
     ];
     courses = [
-        { id: 'c1', name: "مقدمة في البرمجة", professorId: 'p1', hours: 3, labHours: 1, preferredTimes: ["الأحد:8:00-9:40"], notes: "مادة أساسية" },
+        { id: 'c1', name: "مقدمة في البرمجة", professorId: 'p1', hours: 3, labHours: 1, preferredTimes: ["الأحد:08:00-09:40"], notes: "مادة أساسية" },
         { id: 'c2', name: "هياكل البيانات", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: ["الثلاثاء:10:00-11:40"], notes: "" },
         { id: 'c3', name: "شبكات الحاسوب", professorId: 'p1', hours: 3, labHours: 0, preferredTimes: [], notes: "" },
         { id: 'c4', name: "قواعد البيانات", professorId: 'p3', hours: 3, labHours: 1, preferredTimes: [], notes: "" },
         { id: 'c5', name: "ذكاء اصطناعي", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: [], notes: "" },
         { id: 'c6', name: "تحليل وتصميم نظم", professorId: 'p3', hours: 3, labHours: 0, preferredTimes: [], notes: "مشروع" },
+        { id: 'c7', name: "الخوارزميات", professorId: 'p4', hours: 3, labHours: 0, preferredTimes: [], notes: "متقدمة" },
+        { id: 'c8', name: "أمن المعلومات", professorId: 'p4', hours: 2, labHours: 1, preferredTimes: [], notes: "عملي" },
     ];
     currentSchedule = [];
     schedules = [];
@@ -296,32 +361,56 @@ const initializeDummyData = () => {
 // ======================================================
 // Conflict Validation
 // ======================================================
+/**
+ * Checks for conflicts for a given appointment within a schedule.
+ * @param {object} newAppointment - The appointment to check ({id, courseId, professorId, roomId, day, timeRange, ...})
+ * @param {Array} schedule - The current schedule to check against
+ * @returns {Array<string>} List of conflict messages
+ */
 const checkConflicts = (newAppointment, schedule) => {
     const conflicts = [];
     const professorsData = getProfessors();
     const roomsData = getRooms();
 
     const { id: newApptId, courseId, professorId, roomId, day, timeRange } = newAppointment;
+
+    // Basic validation for essential fields
     if (!timeRange || !day || !professorId || !roomId) {
-        conflicts.push("بيانات الموعد غير مكتملة.");
+        conflicts.push("بيانات الموعد غير مكتملة (نطاق الوقت، اليوم، الدكتور، القاعة).");
         return conflicts;
     }
 
-    const { start: newStart, end: newEnd } = parseTimeRange(timeRange);
+    const newApptTime = parseTimeRange(timeRange);
+    if (!newApptTime) {
+        conflicts.push(`نطاق الوقت '${timeRange}' غير صالح للموعد.`);
+        return conflicts;
+    }
+    const { start: newStart, end: newEnd } = newApptTime;
 
     // Check professor availability and preferences
     const professor = professorsData.find(p => p.id === professorId);
     if (professor) {
-        const professorAvailable = professor.availableTimes.some(pt => {
-            const [ptDay, ptRange] = pt.split(':');
-            const { start: ptStart, end: ptEnd } = parseTimeRange(ptRange);
-            return ptDay === day && !isTimeConflict(newStart, newEnd, ptStart, ptEnd);
-        });
-        if (!professorAvailable && !professor.preferences?.flexibleScheduling) {
-            conflicts.push(`الدكتور ${professor.name} غير متاح في ${day} ${timeRange}.`);
-        }
+        // Check if professor's preferred not-to-teach days
         if (professor.preferences?.noFriday && day === "الجمعة") {
             conflicts.push(`الدكتور ${professor.name} يفضل عدم التدريس يوم الجمعة.`);
+        }
+        if (professor.preferences?.noMonday && day === "الاثنين") { // Example for another preference
+            conflicts.push(`الدكتور ${professor.name} يفضل عدم التدريس يوم الاثنين.`);
+        }
+
+        // Check professor's general available times
+        const professorAvailableInSlot = professor.availableTimes.some(pt => {
+            const [ptDay, ptRangeStr] = pt.split(':');
+            const ptRange = parseTimeRange(ptRangeStr);
+
+            if (!ptRange) return false; // Skip invalid available times
+            
+            return ptDay === day && !isTimeConflict(newStart, newEnd, ptRange.start, ptRange.end);
+        });
+
+        // Only add conflict if professor is NOT flexible AND not available
+        if (!professorAvailableInSlot && !professor.preferences?.flexibleScheduling) {
+            conflicts.push(`الدكتور ${professor.name} غير متاح في ${day} ${timeRange}.`);
         }
     } else {
         conflicts.push(`الدكتور بالمعرف ${professorId} غير موجود.`);
@@ -330,12 +419,15 @@ const checkConflicts = (newAppointment, schedule) => {
     // Check room availability
     const room = roomsData.find(r => r.id === roomId);
     if (room) {
-        const roomAvailable = room.availableTimes.some(rt => {
-            const [rtDay, rtRange] = rt.split(':');
-            const { start: rtStart, end: rtEnd } = parseTimeRange(rtRange);
-            return rtDay === day && !isTimeConflict(newStart, newEnd, rtStart, rtEnd);
+        const roomAvailableInSlot = room.availableTimes.some(rt => {
+            const [rtDay, rtRangeStr] = rt.split(':');
+            const rtRange = parseTimeRange(rtRangeStr);
+
+            if (!rtRange) return false; // Skip invalid available times
+
+            return rtDay === day && !isTimeConflict(newStart, newEnd, rtRange.start, rtRange.end);
         });
-        if (!roomAvailable) {
+        if (!roomAvailableInSlot) {
             conflicts.push(`القاعة/المعمل ${room.name} غير متاح في ${day} ${timeRange}.`);
         }
     } else {
@@ -344,18 +436,23 @@ const checkConflicts = (newAppointment, schedule) => {
 
     // Check conflicts with other appointments in the schedule
     schedule.forEach(existingAppointment => {
-        // Skip self-comparison for the same appointment (if it's being updated)
+        // Skip self-comparison for the same appointment (if it's being updated or is the original one in drag/drop)
         if (existingAppointment.id === newApptId) return;
 
         if (existingAppointment.day === day) {
-            const { start: existingStart, end: existingEnd } = parseTimeRange(existingAppointment.timeRange);
+            const existingApptTime = parseTimeRange(existingAppointment.timeRange);
+            if (!existingApptTime) return; // Skip invalid existing appointments
 
+            const { start: existingStart, end: existingEnd } = existingApptTime;
+
+            // Professor conflict
             if (existingAppointment.professorId === professorId && isTimeConflict(newStart, newEnd, existingStart, existingEnd)) {
-                conflicts.push(`تعارض وقت للدكتور ${professor?.name || professorId} بين ${newAppointment.courseName || newAppointment.courseId} و ${existingAppointment.courseName || existingAppointment.courseId} في ${day} ${existingAppointment.timeRange}.`);
+                conflicts.push(`تعارض وقت للدكتور ${professor?.name || professorId} بين "${newAppointment.courseName || newAppointment.courseId}" و "${existingAppointment.courseName || existingAppointment.courseId}" في ${day} ${existingAppointment.timeRange}.`);
             }
 
+            // Room conflict
             if (existingAppointment.roomId === roomId && isTimeConflict(newStart, newEnd, existingStart, existingEnd)) {
-                conflicts.push(`تعارض وقت للقاعة ${room?.name || roomId} بين ${newAppointment.courseName || newAppointment.courseId} و ${existingAppointment.courseName || existingAppointment.courseId} في ${day} ${existingAppointment.timeRange}.`);
+                conflicts.push(`تعارض وقت للقاعة ${room?.name || roomId} بين "${newAppointment.courseName || newAppointment.courseId}" و "${existingAppointment.courseName || existingAppointment.courseId}" في ${day} ${existingAppointment.timeRange}.`);
             }
         }
     });
@@ -363,48 +460,35 @@ const checkConflicts = (newAppointment, schedule) => {
     return conflicts;
 };
 
+/**
+ * Validates the entire schedule for any conflicts.
+ * @param {Array} schedule - The schedule to validate
+ * @returns {Array<string>} List of all conflict messages
+ */
 const validateFullSchedule = (schedule) => {
     const allConflicts = [];
-    const professorsData = getProfessors();
-    const roomsData = getRooms();
 
-    // Create a deep copy of the schedule to avoid modifying it during validation
+    // Use a temporary copy to avoid modifying the original schedule
     const tempSchedule = JSON.parse(JSON.stringify(schedule));
 
     tempSchedule.forEach((appt1, index1) => {
-        // Check availability for appt1 itself (excluding self from check)
+        // Check conflicts for appt1 against all other appointments
         const conflictsForAppt1 = checkConflicts(appt1, tempSchedule.filter((_, idx) => idx !== index1));
         conflictsForAppt1.forEach(conflict => {
             allConflicts.push(`[موعد ${appt1.courseName || appt1.courseId}] ${conflict}`);
         });
-
-        // Check for conflicts with subsequent appointments
-        for (let i = index1 + 1; i < tempSchedule.length; i++) {
-            const appt2 = tempSchedule[i];
-
-            if (appt1.day === appt2.day) {
-                const { start: appt1Start, end: appt1End } = parseTimeRange(appt1.timeRange);
-                const { start: appt2Start, end: appt2End } = parseTimeRange(appt2.timeRange);
-
-                if (appt1.professorId === appt2.professorId && isTimeConflict(appt1Start, appt1End, appt2Start, appt2End)) {
-                    const profName = professorsData.find(p => p.id === appt1.professorId)?.name || appt1.professorId;
-                    allConflicts.push(`تعارض وقت للدكتور ${profName} بين ${appt1.courseName} و ${appt2.courseName} في ${appt1.day} ${appt1.timeRange} و ${appt2.timeRange}.`);
-                }
-
-                if (appt1.roomId === appt2.roomId && isTimeConflict(appt1Start, appt1End, appt2Start, appt2End)) {
-                    const roomName = roomsData.find(r => r.id === appt1.roomId)?.name || appt1.roomId;
-                    allConflicts.push(`تعارض وقت للقاعة ${roomName} بين ${appt1.courseName} و ${appt2.courseName} في ${appt1.day} ${appt1.timeRange} و ${appt2.timeRange}.`);
-                }
-            }
-        }
     });
-    return [...new Set(allConflicts)]; // Return unique conflicts
+    return [...new Set(allConflicts)]; // Return unique conflict messages
 };
 
 // ======================================================
 // Scheduling Algorithms (Enhanced)
 // ======================================================
 
+/**
+ * Generates an automatic schedule based on current data.
+ * @returns {{schedule: Array, unassignedCourses: Array, conflicts: Array}} Generated schedule and any issues
+ */
 const generateSchedule = () => {
     const professorsData = getProfessors();
     const roomsData = getRooms();
@@ -413,12 +497,18 @@ const generateSchedule = () => {
     let newSchedule = [];
     let unassignedCourses = []; // To track courses that couldn't be fully scheduled
 
+    if (professorsData.length === 0 || roomsData.length === 0 || coursesData.length === 0) {
+        showAlert("الرجاء إدخال بيانات الدكاترة والقاعات والمواد أولاً لتوليد الجدول.", "warning");
+        return { schedule: [], unassignedCourses: [], conflicts: [] };
+    }
+
     // Prepare scheduling units based on course hours.
     // Each 100-minute slot is considered one scheduling unit.
     const schedulingUnits = [];
     coursesData.forEach(course => {
         const totalDurationMinutes = (course.hours * 60) + (course.labHours * 60);
-        const numSlots = Math.ceil(totalDurationMinutes / 100); // 100 mins per slot
+        // Ensure at least one slot if hours > 0, otherwise 0 slots
+        const numSlots = totalDurationMinutes > 0 ? Math.max(1, Math.ceil(totalDurationMinutes / 100)) : 0;
 
         for (let i = 0; i < numSlots; i++) {
             schedulingUnits.push({
@@ -428,8 +518,9 @@ const generateSchedule = () => {
                 isLabSession: i < Math.ceil((course.labHours * 60) / 100), // Mark if this unit is specifically for lab
                 preferredTimes: course.preferredTimes,
                 notes: course.notes,
-                originalCourseHours: course.hours, // For evaluation and tracking
-                originalLabHours: course.labHours
+                originalCourseHours: course.hours,
+                originalLabHours: course.labHours,
+                unitIndex: i + 1 // To differentiate units of the same course
             });
         }
     });
@@ -442,11 +533,11 @@ const generateSchedule = () => {
         const profA = professorsData.find(p => p.id === a.professorId);
         const profB = professorsData.find(p => p.id === b.professorId);
 
-        // Prioritize preferred times
+        // Prioritize preferred times (units with preferred times come first)
         if (a.preferredTimes.length > 0 && b.preferredTimes.length === 0) return -1;
         if (a.preferredTimes.length === 0 && b.preferredTimes.length > 0) return 1;
 
-        // Prioritize lab sessions
+        // Prioritize lab sessions (lab sessions come before non-lab)
         if (a.isLabSession && !b.isLabSession) return -1;
         if (!a.isLabSession && b.isLabSession) return 1;
 
@@ -454,7 +545,7 @@ const generateSchedule = () => {
         if (profA && profB) {
             return profA.priority - profB.priority;
         }
-        return 0;
+        return 0; // No change in order if priorities are same or profs not found
     });
 
     // Attempt to schedule each unit
@@ -462,11 +553,12 @@ const generateSchedule = () => {
         let assigned = false;
         const professor = professorsData.find(p => p.id === unit.professorId);
         if (!professor) {
-            unassignedCourses.push({ ...unit, reason: "الدكتور غير موجود." });
+            unassignedCourses.push({ ...unit, reason: "الدكتور غير موجود للمادة." });
             continue;
         }
 
         let possibleSlots = [];
+        // First, add preferred slots if any
         if (unit.preferredTimes && unit.preferredTimes.length > 0) {
             for (const prefTime of unit.preferredTimes) {
                 const [day, timeRange] = prefTime.split(':');
@@ -475,11 +567,13 @@ const generateSchedule = () => {
                 }
             }
         }
-        // Add all other possible slots
+        // Then, add all other possible slots (if not already added as preferred)
         for (const day of DAYS) {
-            if (professor.preferences?.noFriday && day === "الجمعة") continue; // Respect professor preference
+            // Respect professor's "not to teach" preferences
+            if (professor.preferences?.noFriday && day === "الجمعة") continue;
+            if (professor.preferences?.noMonday && day === "الاثنين") continue; // Example for another preference
+
             for (const timeRange of TIME_SLOTS) {
-                // Avoid duplicating if already added from preferredTimes
                 if (!possibleSlots.some(s => s.day === day && s.timeRange === timeRange)) {
                     possibleSlots.push({ day, timeRange, preferred: false });
                 }
@@ -493,23 +587,43 @@ const generateSchedule = () => {
             return toMinutes(parseTimeRange(a.timeRange).start) - toMinutes(parseTimeRange(b.timeRange).start);
         });
 
+        // Try to place the unit in the sorted possible slots
         for (const slot of possibleSlots) {
             const { day, timeRange } = slot;
-            const { start: slotStart, end: slotEnd } = parseTimeRange(timeRange);
+            const { start: slotStart, end: slotEnd } = parseTimeRange(timeRange) || {}; // Handle null from parseTimeRange
+
+            if (!slotStart || !slotEnd) { // Skip invalid time ranges
+                console.warn(`Skipping invalid time slot: ${timeRange}`);
+                continue;
+            }
 
             let suitableRooms = roomsData.filter(r =>
-                (unit.isLabSession ? r.type === "lab" : r.type === "lecture") && // Match room type
-                r.availableTimes.some(rt => { // Check room availability
-                    const [rtDay, rtRange] = rt.split(':');
-                    const { start: rtStart, end: rtEnd } = parseTimeRange(rtRange);
-                    return rtDay === day && !isTimeConflict(slotStart, slotEnd, rtStart, rtEnd);
+                (unit.isLabSession ? r.type === "lab" : r.type === "lecture") && // Match room type (lab/lecture)
+                r.availableTimes.some(rt => { // Check room's general available times
+                    const [rtDay, rtRangeStr] = rt.split(':');
+                    const rtRange = parseTimeRange(rtRangeStr);
+
+                    if (!rtRange) return false; // Skip invalid room available times
+
+                    return rtDay === day && !isTimeConflict(slotStart, slotEnd, rtRange.start, rtRange.end);
                 })
             );
 
-            // Prioritize rooms based on location group if professor has consecutive classes
-            // This is a heuristic, real CP would model connectivity.
-            // For now, simple randomization
-            suitableRooms.sort(() => 0.5 - Math.random()); // Randomize for scenario generation
+            // Prioritize rooms based on location group to reduce professor travel
+            // This is a simple heuristic: try to keep appointments in the same building as previous ones if possible
+            suitableRooms.sort((a, b) => {
+                // Find last scheduled appointment for this professor
+                const lastApptForProf = newSchedule.slice().reverse().find(appt => appt.professorId === professor.id && appt.day === day);
+                const lastApptRoom = lastApptForProf ? roomsData.find(r => r.id === lastApptForProf.roomId) : null;
+
+                if (lastApptRoom && a.locationGroup && b.locationGroup) {
+                    const aMatchesLast = a.locationGroup === lastApptRoom.locationGroup;
+                    const bMatchesLast = b.locationGroup === lastApptRoom.locationGroup;
+                    if (aMatchesLast && !bMatchesLast) return -1; // 'a' is better if it matches last room group
+                    if (!aMatchesLast && bMatchesLast) return 1;  // 'b' is better
+                }
+                return 0.5 - Math.random(); // Randomize otherwise for scenario diversity
+            });
 
             for (const room of suitableRooms) {
                 const potentialAppointment = {
@@ -517,9 +631,9 @@ const generateSchedule = () => {
                     courseId: unit.courseId,
                     courseName: unit.courseName,
                     professorId: professor.id,
-                    professorName: professor.name,
+                    professorName: professor.name, // Store professor name for display ease
                     roomId: room.id,
-                    roomName: room.name,
+                    roomName: room.name, // Store room name for display ease
                     type: unit.isLabSession ? "lab" : "lecture",
                     day: day,
                     timeRange: timeRange,
@@ -530,21 +644,28 @@ const generateSchedule = () => {
                 if (conflicts.length === 0) {
                     newSchedule.push(potentialAppointment);
                     assigned = true;
-                    break;
+                    break; // Slot and room found for this unit
                 }
             }
-            if (assigned) break;
+            if (assigned) break; // Slot found for this unit
         }
 
         if (!assigned) {
-            unassignedCourses.push({ ...unit, reason: "لم يتم العثور على وقت/قاعة مناسبة لهذه الوحدة بعد القيود." });
+            unassignedCourses.push({
+                ...unit,
+                reason: `لم يتم العثور على وقت/قاعة مناسبة لوحدة المادة: ${unit.courseName} (دكتور: ${professor.name})`
+            });
         }
     }
 
+    // Sort final schedule for consistent display (by day, then by time)
     newSchedule.sort((a, b) => {
         const dayOrder = DAYS.indexOf(a.day) - DAYS.indexOf(b.day);
         if (dayOrder !== 0) return dayOrder;
-        return toMinutes(parseTimeRange(a.timeRange).start) - toMinutes(parseTimeRange(b.timeRange).start);
+        const timeA = parseTimeRange(a.timeRange);
+        const timeB = parseTimeRange(b.timeRange);
+        if (!timeA || !timeB) return 0; // Handle invalid time ranges gracefully during sort
+        return toMinutes(timeA.start) - toMinutes(timeB.start);
     });
 
     setCurrentSchedule(newSchedule);
@@ -553,13 +674,18 @@ const generateSchedule = () => {
     return { schedule: newSchedule, unassignedCourses: unassignedCourses, conflicts: fullScheduleConflicts };
 };
 
+/**
+ * Evaluates the quality of a given schedule based on various criteria.
+ * @param {Array} schedule - The schedule to evaluate
+ * @returns {{score: number, details: object}} Evaluation score and details
+ */
 const evaluateSchedule = (schedule) => {
     let score = 100;
     const evaluationDetails = {};
     const professorsData = getProfessors();
     const roomsData = getRooms();
 
-    // 1. Professor teaching days
+    // 1. Professor teaching days: Penalize for spreading teaching over too many days
     const professorDays = {};
     schedule.forEach(appt => {
         if (!professorDays[appt.professorId]) professorDays[appt.professorId] = new Set();
@@ -570,12 +696,12 @@ const evaluateSchedule = (schedule) => {
         const profName = professorsData.find(p => p.id === profId)?.name || 'غير معروف';
         const numDays = professorDays[profId].size;
         evaluationDetails[`أيام تدريس ${profName}`] = `${numDays} أيام`;
-        if (numDays > 3) {
+        if (numDays > 3) { // Ideal is 2-3 days
             score -= (numDays - 3) * 5;
         }
     }
 
-    // 2. Gaps between lectures for the same professor on the same day
+    // 2. Gaps between lectures for the same professor on the same day: Penalize long breaks
     const profDailySchedule = {};
     schedule.forEach(appt => {
         if (!profDailySchedule[appt.professorId]) profDailySchedule[appt.professorId] = {};
@@ -585,13 +711,20 @@ const evaluateSchedule = (schedule) => {
 
     for (const profId in profDailySchedule) {
         for (const day in profDailySchedule[profId]) {
-            const appointments = profDailySchedule[profId][day].sort((a, b) =>
-                toMinutes(parseTimeRange(a.timeRange).start) - toMinutes(parseTimeRange(b.timeRange).start)
-            );
+            const appointments = profDailySchedule[profId][day].sort((a, b) => {
+                const timeA = parseTimeRange(a.timeRange);
+                const timeB = parseTimeRange(b.timeRange);
+                if (!timeA || !timeB) return 0;
+                return toMinutes(timeA.start) - toMinutes(timeB.start);
+            });
 
             for (let i = 0; i < appointments.length - 1; i++) {
-                const end1Minutes = toMinutes(parseTimeRange(appointments[i].timeRange).end);
-                const start2Minutes = toMinutes(parseTimeRange(appointments[i + 1].timeRange).start);
+                const appt1Time = parseTimeRange(appointments[i].timeRange);
+                const appt2Time = parseTimeRange(appointments[i + 1].timeRange);
+                if (!appt1Time || !appt2Time) continue;
+
+                const end1Minutes = toMinutes(appt1Time.end);
+                const start2Minutes = toMinutes(appt2Time.start);
                 const gap = start2Minutes - end1Minutes;
 
                 if (gap > 60 && gap < 180) { // 1 to 3 hours gap
@@ -605,7 +738,7 @@ const evaluateSchedule = (schedule) => {
         }
     }
 
-    // 3. Room utilization/occupancy (already present, improved penalty)
+    // 3. Room utilization/occupancy: Penalize under/over-utilized rooms
     const roomUsage = {};
     const totalPossibleSlotsPerRoom = DAYS.length * TIME_SLOTS.length; // Total slots available in a week
     roomsData.forEach(room => roomUsage[room.id] = { count: 0, name: room.name, totalSlots: totalPossibleSlotsPerRoom });
@@ -626,7 +759,7 @@ const evaluateSchedule = (schedule) => {
         }
     }
 
-    // 4. Lab distribution (already present)
+    // 4. Lab distribution: Penalize if labs are heavily concentrated on few days
     const labUsageByDay = {};
     schedule.forEach(appt => {
         if (appt.type === "lab") {
@@ -640,11 +773,11 @@ const evaluateSchedule = (schedule) => {
         maxLabsInDay = Math.max(maxLabsInDay, labUsageByDay[day]);
     }
     evaluationDetails[`أقصى عدد معامل في يوم واحد`] = maxLabsInDay;
-    if (maxLabsInDay > 4) {
+    if (maxLabsInDay > 4) { // If too many labs on one day
         score -= (maxLabsInDay - 4) * 3;
     }
 
-    // 5. Reduce room switching for professors (requires room location info)
+    // 5. Reduce room switching for professors: Penalize frequent changes in locationGroup
     const professorDailyRoomChanges = {};
     professorsData.forEach(prof => professorDailyRoomChanges[prof.id] = {});
 
@@ -652,7 +785,7 @@ const evaluateSchedule = (schedule) => {
         const profId = appt.professorId;
         const day = appt.day;
         const room = roomsData.find(r => r.id === appt.roomId);
-        if (room && room.locationGroup) { // Check if room has locationGroup defined
+        if (room && room.locationGroup) {
             if (!professorDailyRoomChanges[profId][day]) {
                 professorDailyRoomChanges[profId][day] = new Set();
             }
@@ -674,7 +807,7 @@ const evaluateSchedule = (schedule) => {
     evaluationDetails[`إجمالي مرات تنقل الدكاترة بين المباني`] = totalRoomSwitches;
     score -= totalRoomSwitches * 2; // Penalize each room switch
 
-    // 6. Balance course load per day (avoiding "packing" all courses on few days)
+    // 6. Balance course load per day: Penalize uneven distribution of slots across days
     const dailySlotCount = {};
     DAYS.forEach(day => dailySlotCount[day] = 0);
     schedule.forEach(appt => dailySlotCount[appt.day]++);
@@ -692,15 +825,20 @@ const evaluateSchedule = (schedule) => {
     // 7. Final conflicts (major penalty)
     const conflicts = validateFullSchedule(schedule);
     if (conflicts.length > 0) {
-        score -= conflicts.length * 20;
+        score -= conflicts.length * 20; // Heavier penalty for unresolved conflicts
         evaluationDetails['تعارضات'] = conflicts.length;
         evaluationDetails['تفاصيل التعارضات'] = conflicts;
     }
 
-    score = Math.max(0, score);
+    score = Math.max(0, score); // Score cannot go below 0
     return { score: Math.round(score), details: evaluationDetails };
 };
 
+/**
+ * Generates multiple schedule scenarios and evaluates them.
+ * @param {number} numScenarios - Number of scenarios to generate
+ * @returns {Array<Object>} List of scenarios with their schedules and evaluations
+ */
 const generateMultipleScenarios = (numScenarios = 3) => {
     const scenarios = [];
     for (let i = 0; i < numScenarios; i++) {
@@ -716,15 +854,22 @@ const generateMultipleScenarios = (numScenarios = 3) => {
             conflicts: conflicts
         });
     }
-    scenarios.sort((a, b) => b.evaluation.score - a.evaluation.score);
+    scenarios.sort((a, b) => b.evaluation.score - a.evaluation.score); // Sort by score descending
     return scenarios;
 };
 
+/**
+ * Suggests alternative times for a problematic appointment based on current schedule constraints.
+ * @param {object} problematicAppointment - The appointment that has a conflict
+ * @returns {Array<object>} List of suggested alternative slots
+ */
 const suggestAlternativeTimes = (problematicAppointment) => {
     const professorsData = getProfessors();
     const roomsData = getRooms();
     const coursesData = getCourses();
-    const currentScheduleCopy = [...getCurrentSchedule()];
+    // Create a copy of the current schedule and remove the problematic appointment
+    // to check for conflicts as if it were moved.
+    const tempSchedule = [...getCurrentSchedule()].filter(appt => appt.id !== problematicAppointment.id);
 
     const course = coursesData.find(c => c.id === problematicAppointment.courseId);
     const professor = professorsData.find(p => p.id === problematicAppointment.professorId);
@@ -732,29 +877,35 @@ const suggestAlternativeTimes = (problematicAppointment) => {
 
     const suggestions = [];
 
-    // Temporarily remove the problematic appointment from the schedule for conflict checking
-    const tempSchedule = currentScheduleCopy.filter(appt => appt.id !== problematicAppointment.id);
-
     for (const day of DAYS) {
+        // Respect professor's "not to teach" preferences
         if (professor?.preferences?.noFriday && day === "الجمعة") continue;
+        if (professor?.preferences?.noMonday && day === "الاثنين") continue; // Example for another preference
 
         for (const timeRange of TIME_SLOTS) {
-            const { start: slotStart, end: slotEnd } = parseTimeRange(timeRange);
+            const newApptTime = parseTimeRange(timeRange);
+            if (!newApptTime) continue; // Skip invalid time ranges
+            const { start: slotStart, end: slotEnd } = newApptTime;
 
+            // Check if professor is available in this new slot
             let professorAvailable = professor?.availableTimes.some(pt => {
-                const [ptDay, ptRange] = pt.split(':');
-                const { start: ptStart, end: ptEnd } = parseTimeRange(ptRange);
-                return ptDay === day && !isTimeConflict(slotStart, slotEnd, ptStart, ptEnd);
+                const [ptDay, ptRangeStr] = pt.split(':');
+                const ptRange = parseTimeRange(ptRangeStr);
+                if (!ptRange) return false;
+                return ptDay === day && !isTimeConflict(slotStart, slotEnd, ptRange.start, ptRange.end);
             }) || false;
 
+            // Check if room is available in this new slot
             let roomAvailable = problematicRoom?.availableTimes.some(rt => {
-                const [rtDay, rtRange] = rt.split(':');
-                const { start: rtStart, end: rtEnd } = parseTimeRange(rtRange);
-                return rtDay === day && !isTimeConflict(slotStart, slotEnd, rtStart, rtEnd);
+                const [rtDay, rtRangeStr] = rt.split(':');
+                const rtRange = parseTimeRange(rtRangeStr);
+                if (!rtRange) return false;
+                return rtDay === day && !isTimeConflict(slotStart, slotEnd, rtRange.start, rtRange.end);
             }) || false;
 
+            // Create a potential appointment object for conflict checking
             const potentialAppointment = {
-                id: generateUniqueId(), // A temporary ID for this potential slot
+                id: generateUniqueId(), // Use a temporary ID for checking
                 courseId: problematicAppointment.courseId,
                 courseName: problematicAppointment.courseName,
                 professorId: problematicAppointment.professorId,
@@ -767,13 +918,15 @@ const suggestAlternativeTimes = (problematicAppointment) => {
                 notes: problematicAppointment.notes
             };
 
+            // Check for conflicts with other appointments in the temporary schedule
             const conflicts = checkConflicts(potentialAppointment, tempSchedule);
 
+            // If no conflicts and both professor and room are generally available, it's a valid suggestion
             if (professorAvailable && roomAvailable && conflicts.length === 0) {
                 suggestions.push({
                     day: day,
                     timeRange: timeRange,
-                    room: problematicRoom?.name || 'نفس القاعة',
+                    room: problematicRoom?.name || 'نفس القاعة', // Could suggest other rooms if applicable
                     reason: "لا يوجد تعارض"
                 });
             }
@@ -787,7 +940,7 @@ const suggestAlternativeTimes = (problematicAppointment) => {
 // UI Management
 // ======================================================
 
-// DOM Elements
+// DOM Elements (Selected for direct use, others can be accessed as needed)
 const mainContent = document.querySelector('main');
 const navLinks = document.querySelectorAll('nav ul li a');
 const scheduleGrid = document.getElementById('schedule-grid');
@@ -832,11 +985,15 @@ const editApptNotes = document.getElementById('edit-appt-notes');
 
 
 // UI Helpers
+/**
+ * Shows a specific section of the page and updates navigation.
+ * @param {string} sectionId - The ID of the section to show
+ */
 const showSection = (sectionId) => {
     document.querySelectorAll('section').forEach(section => {
         section.classList.remove('active-section');
     });
-    document.getElementById(sectionId).classList.add('active-section');
+    document.getElementById(sectionId)?.classList.add('active-section'); // Use optional chaining for safety
 
     navLinks.forEach(link => {
         if (link.dataset.section === sectionId) {
@@ -846,6 +1003,7 @@ const showSection = (sectionId) => {
         }
     });
 
+    // Re-render content specific to the activated section
     if (sectionId === 'schedule-view') {
         renderScheduleGrid();
     } else if (sectionId === 'data-entry') {
@@ -857,19 +1015,23 @@ const showSection = (sectionId) => {
         renderReports();
     } else if (sectionId === 'professor-schedules') {
         renderProfessorSchedules();
-    } else if (sectionId === 'settings') {
-        // Any specific rendering for settings can go here
     }
 };
 
+/**
+ * Displays an alert message to the user.
+ * @param {string} message - The message to display
+ * @param {'danger' | 'success' | 'info' | 'warning'} type - The type of alert for styling
+ */
 const showAlert = (message, type = 'danger') => {
+    if (!conflictAlertsDiv) return;
     conflictAlertsDiv.innerHTML = message;
     conflictAlertsDiv.className = `alert alert-${type}`;
     conflictAlertsDiv.style.display = 'block';
     if (window.alertTimeout) clearTimeout(window.alertTimeout);
     window.alertTimeout = setTimeout(() => {
         conflictAlertsDiv.style.display = 'none';
-    }, 8000);
+    }, 8000); // Hide after 8 seconds
 };
 
 // Data Entry Rendering
@@ -893,22 +1055,26 @@ const renderProfessorList = () => {
 
     professorListDiv.innerHTML = '<h3>قائمة الدكاترة</h3>';
     if (professorsData.length === 0) {
-        professorListDiv.innerHTML += '<p>لا يوجد دكاترة بعد.</p>';
+        professorListDiv.innerHTML += '<p class="text-secondary">لا يوجد دكاترة بعد. استخدم النموذج أعلاه لإضافة دكتور.</p>';
         return;
     }
     const ul = document.createElement('ul');
     professorsData.forEach(prof => {
         const li = document.createElement('li');
         const availableTimesFormatted = prof.availableTimes.length > 0 ? prof.availableTimes.join(', ') : 'لا يوجد';
-        const preferencesText = prof.preferences?.noFriday ? ' (لا جمعة)' : '';
+        const preferencesText = [];
+        if (prof.preferences?.noFriday) preferencesText.push('لا جمعة');
+        if (prof.preferences?.noMonday) preferencesText.push('لا اثنين'); // Example for another preference
+        const preferencesDisplay = preferencesText.length > 0 ? ` (${preferencesText.join(', ')})` : '';
+
         li.innerHTML = `
             <div>
-                <strong>${prof.name}</strong> (أولوية: ${prof.priority})${preferencesText}<br>
-                الأوقات المتاحة: ${availableTimesFormatted}
+                <strong>${prof.name}</strong> (أولوية: ${prof.priority})${preferencesDisplay}<br>
+                <span>الأوقات المتاحة: ${availableTimesFormatted}</span>
             </div>
             <div>
-                <button class="edit-btn" data-id="${prof.id}" data-type="professor">تعديل</button>
-                <button class="delete-btn" data-id="${prof.id}" data-type="professor">حذف</button>
+                <button class="edit-btn" data-id="${prof.id}" data-type="professor"><i class="fas fa-edit"></i> تعديل</button>
+                <button class="delete-btn" data-id="${prof.id}" data-type="professor"><i class="fas fa-trash-alt"></i> حذف</button>
             </div>
         `;
         ul.appendChild(li);
@@ -922,7 +1088,7 @@ const renderRoomList = () => {
 
     roomListDiv.innerHTML = '<h3>قائمة القاعات والمعامل</h3>';
     if (roomsData.length === 0) {
-        roomListDiv.innerHTML += '<p>لا توجد قاعات بعد.</p>';
+        roomListDiv.innerHTML += '<p class="text-secondary">لا توجد قاعات بعد. استخدم النموذج أعلاه لإضافة قاعة/معمل.</p>';
         return;
     }
     const ul = document.createElement('ul');
@@ -933,11 +1099,11 @@ const renderRoomList = () => {
         li.innerHTML = `
             <div>
                 <strong>${room.name}</strong> (${room.type === 'lecture' ? 'قاعة' : 'معمل'})${locationGroupText}<br>
-                الأوقات المتاحة: ${availableTimesFormatted}
+                <span>الأوقات المتاحة: ${availableTimesFormatted}</span>
             </div>
             <div>
-                <button class="edit-btn" data-id="${room.id}" data-type="room">تعديل</button>
-                <button class="delete-btn" data-id="${room.id}" data-type="room">حذف</button>
+                <button class="edit-btn" data-id="${room.id}" data-type="room"><i class="fas fa-edit"></i> تعديل</button>
+                <button class="delete-btn" data-id="${room.id}" data-type="room"><i class="fas fa-trash-alt"></i> حذف</button>
             </div>
         `;
         ul.appendChild(li);
@@ -952,7 +1118,7 @@ const renderCourseList = () => {
 
     courseListDiv.innerHTML = '<h3>قائمة المواد</h3>';
     if (coursesData.length === 0) {
-        courseListDiv.innerHTML += '<p>لا توجد مواد بعد.</p>';
+        courseListDiv.innerHTML += '<p class="text-secondary">لا توجد مواد بعد. استخدم النموذج أعلاه لإضافة مادة.</p>';
         return;
     }
     const ul = document.createElement('ul');
@@ -963,12 +1129,12 @@ const renderCourseList = () => {
         li.innerHTML = `
             <div>
                 <strong>${course.name}</strong> (دكتور: ${profName})<br>
-                ساعات: ${course.hours} نظري, ${course.labHours} عملي ${preferredTimesText}<br>
-                ملاحظات: ${course.notes || '-'}
+                <span>ساعات: ${course.hours} نظري, ${course.labHours} عملي ${preferredTimesText}</span><br>
+                <span>ملاحظات: ${course.notes || '-'}</span>
             </div>
             <div>
-                <button class="edit-btn" data-id="${course.id}" data-type="course">تعديل</button>
-                <button class="delete-btn" data-id="${course.id}" data-type="course">حذف</button>
+                <button class="edit-btn" data-id="${course.id}" data-type="course"><i class="fas fa-edit"></i> تعديل</button>
+                <button class="delete-btn" data-id="${course.id}" data-type="course"><i class="fas fa-trash-alt"></i> حذف</button>
             </div>
         `;
         ul.appendChild(li);
@@ -976,13 +1142,14 @@ const renderCourseList = () => {
     courseListDiv.appendChild(ul);
 };
 
-// Modal functions
+// Modal functions for appointment editing
 const openEditModal = (appointmentData) => {
     if (!editAppointmentModal) return;
 
+    // Populate modal fields with appointment data
     editApptOriginalId.value = appointmentData.id;
-    editApptCourseName.value = appointmentData.courseName;
-    editApptNotes.value = appointmentData.notes;
+    editApptCourseName.value = appointmentData.courseName || `مادة ${appointmentData.courseId}`;
+    editApptNotes.value = appointmentData.notes || '';
 
     // Populate Professor Select
     editApptProfessorId.innerHTML = '';
@@ -1043,26 +1210,34 @@ const closeEditModal = () => {
 
 
 // Schedule Grid Rendering (Drag & Drop)
-let draggedItem = null;
-let draggedAppointmentId = null;
+let draggedItem = null; // The DOM element being dragged
+let draggedAppointmentId = null; // The unique ID of the appointment data
 
+/**
+ * Renders the interactive schedule grid.
+ */
 const renderScheduleGrid = () => {
     const currentScheduleData = getCurrentSchedule();
     const professorsData = getProfessors();
     const roomsData = getRooms();
 
     if (!scheduleGrid) return;
-    scheduleGrid.innerHTML = '';
+    scheduleGrid.innerHTML = ''; // Clear previous content
 
+    // Set up CSS Grid columns based on days
     scheduleGrid.style.gridTemplateColumns = `minmax(120px, 1fr) repeat(${DAYS.length}, 1fr)`;
 
+    // Create empty top-left header cell
     scheduleGrid.appendChild(createGridHeaderCell(''));
+
+    // Create day headers
     DAYS.forEach(day => {
         scheduleGrid.appendChild(createGridHeaderCell(day));
     });
 
+    // Create time slot rows and cells
     TIME_SLOTS.forEach(timeSlot => {
-        scheduleGrid.appendChild(createGridHeaderCell(timeSlot));
+        scheduleGrid.appendChild(createGridHeaderCell(timeSlot)); // Time slot header
 
         DAYS.forEach(day => {
             const cell = document.createElement('div');
@@ -1070,6 +1245,7 @@ const renderScheduleGrid = () => {
             cell.dataset.day = day;
             cell.dataset.time = timeSlot;
 
+            // Filter appointments that belong to this cell's day and time slot
             const appointmentsInCell = currentScheduleData.filter(appt =>
                 appt.day === day && appt.timeRange === timeSlot
             );
@@ -1078,33 +1254,49 @@ const renderScheduleGrid = () => {
                 const courseDiv = document.createElement('div');
                 courseDiv.classList.add('course-item');
                 courseDiv.draggable = true;
-                courseDiv.dataset.appointmentId = appt.id; // Use the unique ID for drag/click identification
+                courseDiv.dataset.appointmentId = appt.id; // Store unique ID for identification
+
+                // Add class based on appointment type (for CSS styling)
+                if (appt.type === 'lab') {
+                    courseDiv.classList.add('lab');
+                } else {
+                    courseDiv.classList.add('lecture');
+                }
+                // Add professor-specific class for potential color-coding (example)
+                courseDiv.classList.add(`prof-${appt.professorId}`);
                 
                 const prof = professorsData.find(p => p.id === appt.professorId);
                 const room = roomsData.find(r => r.id === appt.roomId);
 
                 courseDiv.innerHTML = `
                     <strong>${appt.courseName || 'مادة غير معروفة'}</strong><br>
-                    د: ${prof ? prof.name : 'غير معروف'}<br>
-                    ق: ${room ? room.name : 'غير معروف'}
+                    <span>د: ${prof ? prof.name : 'غير معروف'}</span><br>
+                    <span>ق: ${room ? room.name : 'غير معروف'}</span>
                 `;
                 cell.appendChild(courseDiv);
 
+                // Add click listener to open edit modal
                 courseDiv.addEventListener('click', () => {
-                    openEditModal(appt); // Pass the actual appointment object
+                    openEditModal(appt); // Pass the actual appointment object for editing
                 });
             });
 
+            // Add drag and drop event listeners to cells
             cell.addEventListener('dragover', handleDragOver);
             cell.addEventListener('dragleave', handleDragLeave);
             cell.addEventListener('drop', handleDrop);
             scheduleGrid.appendChild(cell);
         });
     });
-    addDragStartListeners();
-    displayScheduleConflicts();
+    addDragStartListeners(); // Add dragstart listeners to course items
+    displayScheduleConflicts(); // Re-validate and display conflicts after rendering
 };
 
+/**
+ * Creates a header cell for the schedule grid.
+ * @param {string} text - The text content for the header cell
+ * @returns {HTMLDivElement} The created header cell element
+ */
 const createGridHeaderCell = (text) => {
     const cell = document.createElement('div');
     cell.classList.add('schedule-cell', 'schedule-header');
@@ -1112,18 +1304,22 @@ const createGridHeaderCell = (text) => {
     return cell;
 };
 
+/**
+ * Adds dragstart listeners to all .course-item elements.
+ */
 const addDragStartListeners = () => {
     document.querySelectorAll('.course-item').forEach(item => {
         item.addEventListener('dragstart', (e) => {
             draggedItem = e.target;
-            draggedAppointmentId = item.dataset.appointmentId;
+            draggedAppointmentId = item.dataset.appointmentId; // Get the unique ID from dataset
             draggedItem.classList.add('dragging');
-            e.dataTransfer.setData('text/plain', draggedAppointmentId);
+            e.dataTransfer.setData('text/plain', draggedAppointmentId); // Set data for transfer (optional)
         });
         item.addEventListener('dragend', () => {
             draggedItem.classList.remove('dragging');
             draggedItem = null;
             draggedAppointmentId = null;
+            // Remove 'drag-over' class from any cells that might still have it
             document.querySelectorAll('.schedule-cell.drag-over').forEach(cell => {
                 cell.classList.remove('drag-over');
             });
@@ -1131,15 +1327,27 @@ const addDragStartListeners = () => {
     });
 };
 
+/**
+ * Handles the dragover event for schedule cells.
+ * @param {DragEvent} e
+ */
 const handleDragOver = (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Allow drop
     e.currentTarget.classList.add('drag-over');
 };
 
+/**
+ * Handles the dragleave event for schedule cells.
+ * @param {DragEvent} e
+ */
 const handleDragLeave = (e) => {
     e.currentTarget.classList.remove('drag-over');
 };
 
+/**
+ * Handles the drop event for schedule cells, updates appointment position.
+ * @param {DragEvent} e
+ */
 const handleDrop = (e) => {
     e.preventDefault();
     const targetCell = e.currentTarget;
@@ -1150,25 +1358,29 @@ const handleDrop = (e) => {
         const newTime = targetCell.dataset.time;
 
         if (!newDay || !newTime) {
-            showAlert('لا يمكن إفلات الموعد هنا.', 'warning');
+            showAlert('لا يمكن إفلات الموعد هنا: معلومات اليوم أو الوقت غير موجودة.', 'warning');
             return;
         }
 
         const currentScheduleData = getCurrentSchedule();
+        // Find the original appointment object using its unique ID
         const originalAppointment = currentScheduleData.find(appt => appt.id === draggedAppointmentId);
 
         if (!originalAppointment) {
-            showAlert('الموعد الأصلي لم يتم العثور عليه.', 'danger');
+            showAlert('الموعد الأصلي لم يتم العثور عليه للتعديل.', 'danger');
             return;
         }
 
+        // Create a temporary updated version of the appointment
         const updatedAppointment = { ...originalAppointment, day: newDay, timeRange: newTime };
 
+        // Create a temporary schedule by filtering out the original appointment
+        // to check conflicts against the rest of the schedule.
         const tempSchedule = currentScheduleData.filter(appt => appt.id !== draggedAppointmentId);
         const conflicts = checkConflicts(updatedAppointment, tempSchedule);
 
         if (conflicts.length > 0) {
-            showAlert(`فشل تعديل الجدول: ${conflicts.join(' | ')}`, 'danger');
+            showAlert(`فشل تعديل الجدول بسبب تعارضات: ${conflicts.join(' | ')}`, 'danger');
             const suggestions = suggestAlternativeTimes(updatedAppointment);
             if (suggestions.length > 0) {
                 showAlert(`اقتراحات لأوقات بديلة: ${suggestions.map(s => `[${s.day} ${s.timeRange} في ${s.room}]`).join(' | ')}`, 'info');
@@ -1176,70 +1388,75 @@ const handleDrop = (e) => {
                 showAlert('لا توجد أوقات بديلة مقترحة.', 'info');
             }
         } else {
+            // If no conflicts, update the actual currentSchedule
             const finalSchedule = [...tempSchedule, updatedAppointment];
-            setCurrentSchedule(finalSchedule);
-            renderScheduleGrid();
-            showAlert('تم تعديل الجدول بنجاح.', 'success');
+            setCurrentSchedule(finalSchedule); // Save to LocalStorage
+            renderScheduleGrid(); // Re-render the grid to reflect changes
+            showAlert('تم تعديل الجدول بنجاح!', 'success');
         }
     }
 };
 
+/**
+ * Displays and highlights conflicts in the schedule grid.
+ */
 const displayScheduleConflicts = () => {
     const currentScheduleData = getCurrentSchedule();
     const conflicts = validateFullSchedule(currentScheduleData);
     const conflictsDiv = document.getElementById('conflict-alerts');
 
+    // Remove any previous conflict highlights
     document.querySelectorAll('.course-item').forEach(item => item.classList.remove('conflict'));
     document.querySelectorAll('.schedule-cell').forEach(cell => cell.classList.remove('conflict'));
 
     if (conflicts.length > 0) {
-        conflictsDiv.innerHTML = `<h4>تنبيهات التعارض في الجدول:</h4><ul>${conflicts.map(c => `<li>${c}</li>`).join('')}</ul>`;
+        conflictsDiv.innerHTML = `<h4><i class="fas fa-exclamation-triangle"></i> تنبيهات التعارض في الجدول:</h4><ul>${conflicts.map(c => `<li>${c}</li>`).join('')}</ul>`;
         conflictsDiv.classList.remove('alert-success');
         conflictsDiv.classList.add('alert-danger');
         conflictsDiv.style.display = 'block';
 
+        // Highlight conflicting items/cells
         conflicts.forEach(conflictMsg => {
-            // Attempt to find and highlight the specific conflicted appointment
-            // This is a basic approach and might need refinement for complex conflict messages
-            const courseMatch = conflictMsg.match(/\[موعد ([^\]]+)\]/);
+            // Attempt to find and highlight the specific conflicted appointment by its ID or name
+            const courseMatch = conflictMsg.match(/\[موعد ([^\]]+)\]/); // Matches [موعد CourseName]
             if (courseMatch && courseMatch[1]) {
-                const conflictingCourseName = courseMatch[1];
+                const conflictingIdOrName = courseMatch[1];
                 document.querySelectorAll(`.course-item`).forEach(item => {
-                    const apptData = getCurrentSchedule().find(appt => appt.id === item.dataset.appointmentId);
-                    if (apptData && apptData.courseName === conflictingCourseName) {
+                    const appt = currentScheduleData.find(a => a.id === item.dataset.appointmentId);
+                    if (appt && (appt.courseName === conflictingIdOrName || appt.courseId === conflictingIdOrName)) {
                         item.classList.add('conflict');
-                        item.closest('.schedule-cell').classList.add('conflict');
+                        item.closest('.schedule-cell')?.classList.add('conflict');
                     }
                 });
             }
-            // Also highlight based on "between X and Y"
-            const betweenCoursesMatch = conflictMsg.match(/بين (.+) و (.+) في/);
+            // Also try to highlight for conflicts between two courses if message includes "بين X و Y"
+            const betweenCoursesMatch = conflictMsg.match(/بين "(.+?)" و "(.+?)" في/);
             if (betweenCoursesMatch && betweenCoursesMatch.length >= 3) {
                 const course1Name = betweenCoursesMatch[1].trim();
                 const course2Name = betweenCoursesMatch[2].trim();
                 document.querySelectorAll(`.course-item`).forEach(item => {
-                    const apptData = getCurrentSchedule().find(appt => appt.id === item.dataset.appointmentId);
-                    if (apptData && (apptData.courseName === course1Name || apptData.courseName === course2Name)) {
+                    const appt = currentScheduleData.find(a => a.id === item.dataset.appointmentId);
+                    if (appt && (appt.courseName === course1Name || appt.courseName === course2Name)) {
                         item.classList.add('conflict');
-                        item.closest('.schedule-cell').classList.add('conflict');
+                        item.closest('.schedule-cell')?.classList.add('conflict');
                     }
                 });
             }
         });
 
     } else {
-        conflictsDiv.innerHTML = 'لا توجد تعارضات في الجدول الحالي.';
+        conflictsDiv.innerHTML = '<h4><i class="fas fa-check-circle"></i> لا توجد تعارضات في الجدول الحالي.</h4>';
         conflictsDiv.classList.remove('alert-danger');
         conflictsDiv.classList.add('alert-success');
         conflictsDiv.style.display = 'block';
-        if (window.alertTimeout) clearTimeout(window.alertTimeout);
+        if (window.alertTimeout) clearTimeout(window.alertTimeout); // Clear previous hide timeout
         window.alertTimeout = setTimeout(() => {
             conflictsDiv.style.display = 'none';
         }, 3000);
     }
 };
 
-// Reports Rendering
+// Reports Rendering (unchanged, but ensuring Chart.js re-renders correctly)
 const renderReports = () => {
     const currentScheduleData = getCurrentSchedule();
     const evaluation = evaluateSchedule(currentScheduleData);
@@ -1247,7 +1464,7 @@ const renderReports = () => {
     if (!reportsSection) return;
 
     reportsSection.innerHTML = `
-        <h2>تقارير وإحصائيات</h2>
+        <h2><i class="fas fa-chart-bar"></i> تقارير وإحصائيات</h2>
         <div class="evaluation-summary">
             <p><strong>تقييم جودة الجدول:</strong> <span class="score-badge ${evaluation.score >= 80 ? 'high-score' : evaluation.score >= 50 ? 'medium-score' : 'low-score'}">${evaluation.score}/100</span></p>
         </div>
@@ -1287,7 +1504,7 @@ const renderRoomOccupancyChart = (evaluationDetails) => {
 
     const ctx = document.getElementById('roomOccupancyCanvas');
     if (ctx) {
-        // Destroy existing chart instance if any
+        // Destroy existing chart instance if any to prevent redraw issues
         if (ctx.chart) {
             ctx.chart.destroy();
         }
@@ -1328,15 +1545,12 @@ const renderRoomOccupancyChart = (evaluationDetails) => {
                         text: 'نسبة إشغال القاعات'
                     },
                     tooltip: {
-                        rtl: true // Enable RTL for tooltips
+                        rtl: true
                     }
                 },
                 layout: {
                     padding: {
-                        left: 10,
-                        right: 10,
-                        top: 10,
-                        bottom: 10
+                        left: 10, right: 10, top: 10, bottom: 10
                     }
                 }
             }
@@ -1414,19 +1628,16 @@ const renderProfessorLoadChart = (schedule) => {
                         }
                     },
                     legend: {
-                        rtl: true, // Enable RTL for legend
-                        position: 'right', // Place legend on the right for RTL
+                        rtl: true,
+                        position: 'right',
                         labels: {
-                            usePointStyle: true // Use point style for legend items
+                            usePointStyle: true
                         }
                     }
                 },
                 layout: {
                     padding: {
-                        left: 10,
-                        right: 10,
-                        top: 10,
-                        bottom: 10
+                        left: 10, right: 10, top: 10, bottom: 10
                     }
                 }
             }
@@ -1434,17 +1645,17 @@ const renderProfessorLoadChart = (schedule) => {
     }
 };
 
-// Professor Schedules Rendering & Printing
+// Professor Schedules Rendering & Printing (unchanged)
 const renderProfessorSchedules = () => {
     const professorsData = getProfessors();
     const currentScheduleData = getCurrentSchedule();
 
     if (!professorSchedulesSection) return;
 
-    professorSchedulesSection.innerHTML = '<h2>جداول الدكاترة</h2>';
+    professorSchedulesSection.innerHTML = '<h2><i class="fas fa-user-tie"></i> جداول الدكاترة</h2>';
 
     if (professorsData.length === 0) {
-        professorSchedulesSection.innerHTML += '<p>لا يوجد دكاترة لعرض جداولهم.</p>';
+        professorSchedulesSection.innerHTML += '<p class="text-secondary">لا يوجد دكاترة لعرض جداولهم.</p>';
         return;
     }
 
@@ -1456,7 +1667,7 @@ const renderProfessorSchedules = () => {
         const profSchedule = currentScheduleData.filter(appt => appt.professorId === prof.id);
 
         if (profSchedule.length === 0) {
-            profDiv.innerHTML += '<p>لا توجد محاضرات مجدولة لهذا الدكتور.</p>';
+            profDiv.innerHTML += '<p class="text-secondary">لا توجد محاضرات مجدولة لهذا الدكتور.</p>';
         } else {
             const table = document.createElement('table');
             table.innerHTML = `
@@ -1476,9 +1687,10 @@ const renderProfessorSchedules = () => {
             profSchedule.sort((a, b) => {
                 const dayOrder = DAYS.indexOf(a.day) - DAYS.indexOf(b.day);
                 if (dayOrder !== 0) return dayOrder;
-                const timeA = toMinutes(parseTimeRange(a.timeRange).start);
-                const timeB = toMinutes(parseTimeRange(b.timeRange).start);
-                return timeA - timeB;
+                const timeA = parseTimeRange(a.timeRange);
+                const timeB = parseTimeRange(b.timeRange);
+                if (!timeA || !timeB) return 0;
+                return toMinutes(timeA.start) - toMinutes(timeB.start);
             });
 
             profSchedule.forEach(appt => {
@@ -1534,9 +1746,10 @@ const printProfessorSchedule = (profId) => {
         profSchedule.sort((a, b) => {
             const dayOrder = DAYS.indexOf(a.day) - DAYS.indexOf(b.day);
             if (dayOrder !== 0) return dayOrder;
-            const timeA = toMinutes(parseTimeRange(a.timeRange).start);
-            const timeB = toMinutes(parseTimeRange(b.timeRange).start);
-            return timeA - timeB;
+            const timeA = parseTimeRange(a.timeRange);
+            const timeB = parseTimeRange(b.timeRange);
+            if (!timeA || !timeB) return 0;
+            return toMinutes(timeA.start) - toMinutes(timeB.start);
         });
 
         profSchedule.forEach(appt => {
@@ -1565,7 +1778,7 @@ const printProfessorSchedule = (profId) => {
 // ======================================================
 
 const exportScheduleToPDF = () => {
-    const scheduleElement = document.getElementById('schedule-view');
+    const scheduleElement = document.getElementById('schedule-view'); // Target the whole section for broader capture
     if (!scheduleElement) {
         showAlert("لم يتم العثور على عنصر الجدول للتصدير.", 'danger');
         return;
@@ -1578,7 +1791,7 @@ const exportScheduleToPDF = () => {
         return;
     }
 
-    html2canvas(scheduleElement, { scale: 2, useCORS: true }).then(canvas => {
+    html2canvas(scheduleElement, { scale: 2, useCORS: true, logging: false }).then(canvas => {
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jspdf.jsPDF({
             orientation: 'landscape',
@@ -1613,7 +1826,7 @@ const exportScheduleToExcel = () => {
     }
 
     const data = [
-        ["اليوم", "الوقت", "المادة", "الدكتور", "القاعة/المعمل", "النوع", "ملاحظات"]
+        ["اليوم", "الوقت", "المادة", "الدكتور", "القاعة/المعمل", "النوع", "ملاحظات"] // Header row
     ];
 
     schedule.forEach(appt => {
@@ -1628,16 +1841,17 @@ const exportScheduleToExcel = () => {
         ]);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "الجدول الدراسي");
+    const ws = XLSX.utils.aoa_to_sheet(data); // Convert array of arrays to sheet
+    const wb = XLSX.utils.book_new(); // Create a new workbook
+    XLSX.utils.book_append_sheet(wb, ws, "الجدول الدراسي"); // Append sheet to workbook
 
+    // Write workbook to a file
     XLSX.writeFile(wb, "جدول-المواعيد.xlsx");
     showAlert('تم تصدير الجدول إلى ملف Excel (.xlsx) بنجاح.', 'success');
 };
 
 const exportScheduleToImage = () => {
-    const scheduleElement = document.getElementById('schedule-view');
+    const scheduleElement = document.getElementById('schedule-view'); // Target the whole section for broader capture
     if (!scheduleElement) {
         showAlert("لم يتم العثور على عنصر الجدول للتصدير.", 'danger');
         return;
@@ -1650,7 +1864,7 @@ const exportScheduleToImage = () => {
         return;
     }
 
-    html2canvas(scheduleElement, { scale: 2, useCORS: true }).then(canvas => {
+    html2canvas(scheduleElement, { scale: 2, useCORS: true, logging: false }).then(canvas => {
         const link = document.createElement('a');
         link.download = 'جدول-المواعيد.png';
         link.href = canvas.toDataURL('image/png');
@@ -1667,6 +1881,7 @@ const exportScheduleToImage = () => {
 // Event Listeners and Initialization
 // ======================================================
 const setupEventListeners = () => {
+    // Navigation links
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
@@ -1674,6 +1889,7 @@ const setupEventListeners = () => {
         });
     });
 
+    // Professor Form Submission
     if (professorForm) {
         professorForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1684,16 +1900,18 @@ const setupEventListeners = () => {
                 priority: parseInt(formData.get('profPriority')) || 0,
                 preferences: {
                     noFriday: formData.get('profNoFriday') === 'on'
+                    // Add other preferences here if you have checkboxes for them
                 }
             };
             addProfessor(newProf);
             renderProfessorList();
-            renderDataEntryForms();
+            renderDataEntryForms(); // Update professor dropdown in course form
             professorForm.reset();
             showAlert('تم إضافة الدكتور بنجاح.', 'success');
         });
     }
 
+    // Room Form Submission
     if (roomForm) {
         roomForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1702,7 +1920,7 @@ const setupEventListeners = () => {
                 name: formData.get('roomName'),
                 type: formData.get('roomType'),
                 availableTimes: formData.get('roomAvailableTimes').split(',').map(s => s.trim()).filter(s => s),
-                locationGroup: formData.get('roomLocationGroup') || '' // Capture new field
+                locationGroup: formData.get('roomLocationGroup') || ''
             };
             addRoom(newRoom);
             renderRoomList();
@@ -1711,6 +1929,7 @@ const setupEventListeners = () => {
         });
     }
 
+    // Course Form Submission
     if (courseForm) {
         courseForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1730,11 +1949,13 @@ const setupEventListeners = () => {
         });
     }
 
+    // Event delegation for delete/edit buttons in data lists
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-btn')) {
-            const id = e.target.dataset.id;
-            const type = e.target.dataset.type;
-            if (confirm(`هل أنت متأكد من حذف هذا الـ ${type}؟`)) {
+        if (e.target.closest('.delete-btn')) { // Use closest for better click detection on icon
+            const btn = e.target.closest('.delete-btn');
+            const id = btn.dataset.id;
+            const type = btn.dataset.type;
+            if (confirm(`هل أنت متأكد من حذف هذا الـ ${type}؟ هذا سيؤثر على الجداول الحالية.`)) {
                 if (type === 'professor') deleteProfessor(id);
                 else if (type === 'room') deleteRoom(id);
                 else if (type === 'course') deleteCourse(id);
@@ -1742,17 +1963,19 @@ const setupEventListeners = () => {
                 renderRoomList();
                 renderCourseList();
                 renderDataEntryForms();
+                renderScheduleGrid(); // Re-render schedule if data changed
                 showAlert(`تم حذف الـ ${type} بنجاح.`, 'success');
             }
         }
-        // TODO: Implement edit functionality (e.g., populate form with existing data) for data entry lists
-        if (e.target.classList.contains('edit-btn')) {
-            const id = e.target.dataset.id;
-            const type = e.target.dataset.type;
-            showAlert(`ميزة التعديل المباشر من القائمة لـ ${type} غير متاحة بعد، يرجى التعديل عبر النقر على الحصة في الجدول أو حذف وإعادة إضافة.`, 'info');
+        if (e.target.closest('.edit-btn')) { // TODO: Implement actual edit modal/form population for data lists
+            const btn = e.target.closest('.edit-btn');
+            const id = btn.dataset.id;
+            const type = btn.dataset.type;
+            showAlert(`ميزة التعديل المباشر من القائمة لـ ${type} غير متاحة بعد. يرجى التعديل عبر النقر على الحصة في الجدول أو حذف وإعادة إضافة.`, 'info');
         }
     });
 
+    // Upload File Inputs
     if (uploadProfessorsInput) {
         uploadProfessorsInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
@@ -1764,6 +1987,8 @@ const setupEventListeners = () => {
                     renderDataEntryForms();
                 } catch (error) {
                     showAlert(`خطأ في رفع ملف الدكاترة: ${error}`, 'danger');
+                } finally {
+                    e.target.value = ''; // Clear file input
                 }
             }
         });
@@ -1778,6 +2003,8 @@ const setupEventListeners = () => {
                     renderRoomList();
                 } catch (error) {
                     showAlert(`خطأ في رفع ملف القاعات: ${error}`, 'danger');
+                } finally {
+                    e.target.value = '';
                 }
             }
         });
@@ -1793,11 +2020,14 @@ const setupEventListeners = () => {
                     renderDataEntryForms();
                 } catch (error) {
                     showAlert(`خطأ في رفع ملف المواد: ${error}`, 'danger');
+                } finally {
+                    e.target.value = '';
                 }
             }
         });
     }
 
+    // Schedule Generation Button
     if (generateScheduleBtn) {
         generateScheduleBtn.addEventListener('click', () => {
             showAlert('جاري توليد الجدول، قد يستغرق بعض الوقت...', 'info');
@@ -1807,31 +2037,33 @@ const setupEventListeners = () => {
                 showAlert('تم توليد الجدول بنجاح!', 'success');
             } else {
                 let msg = 'تم توليد الجدول مع بعض المشاكل: ';
-                if (conflicts.length > 0) msg += ` ${conflicts.length} تعارضات.`;
-                if (unassignedCourses.length > 0) msg += ` ${unassignedCourses.length} مواد لم يتم جدولتها.`;
+                if (unassignedCourses.length > 0) msg += `<br> ${unassignedCourses.length} مواد/وحدات لم يتم جدولتها.`;
+                if (conflicts.length > 0) msg += `<br> ${conflicts.length} تعارضات في الجدول النهائي.`;
                 showAlert(msg, 'warning');
             }
         });
     }
 
+    // Save Current Schedule Version Button
     if (saveCurrentScheduleBtn) {
         saveCurrentScheduleBtn.addEventListener('click', () => {
-            const scheduleName = prompt("أدخل اسماً للجدول الذي تريد حفظه:");
+            const scheduleName = prompt("أدخل اسماً للجدول الذي تريد حفظه كنسخة:");
             if (scheduleName) {
                 saveScheduleVersion(scheduleName);
             }
         });
     }
 
+    // Load Saved Schedules Button
     if (loadSavedSchedulesBtn) {
         loadSavedSchedulesBtn.addEventListener('click', () => {
             const saved = getSavedSchedules();
             if (saved.length === 0) {
-                showAlert('لا توجد جداول محفوظة.', 'info');
+                showAlert('لا توجد جداول محفوظة بعد.', 'info');
                 return;
             }
 
-            let message = "اختر جدول للتحميل (أدخل الرقم):\n";
+            let message = "اختر جدولاً للتحميل (أدخل الرقم):\n";
             saved.forEach((s, index) => {
                 message += `${index + 1}. ${s.name} (${new Date(s.timestamp).toLocaleString()})\n`;
             });
@@ -1842,21 +2074,22 @@ const setupEventListeners = () => {
             if (!isNaN(index) && saved[index]) {
                 loadScheduleVersion(saved[index].id);
                 renderScheduleGrid();
-            } else if (choice !== null) {
+            } else if (choice !== null && choice !== "") {
                 showAlert('اختيار غير صالح أو تم الإلغاء.', 'warning');
             }
         });
     }
 
+    // Export Buttons
     if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportScheduleToPDF);
     if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportScheduleToExcel);
     if (exportImageBtn) exportImageBtn.addEventListener('click', exportScheduleToImage);
 
-    // Modal close button
+    // Modal Close Button
     if (closeButton) {
         closeButton.addEventListener('click', closeEditModal);
     }
-    // Close modal if clicked outside content
+    // Close modal if clicked outside its content
     if (editAppointmentModal) {
         window.addEventListener('click', (event) => {
             if (event.target === editAppointmentModal) {
@@ -1865,7 +2098,7 @@ const setupEventListeners = () => {
         });
     }
 
-    // Edit appointment form submission
+    // Edit Appointment Form Submission (inside modal)
     if (editAppointmentForm) {
         editAppointmentForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1889,11 +2122,12 @@ const setupEventListeners = () => {
 
             const updatedAppointment = { ...currentScheduleData[originalAppointmentIndex], ...updatedFields };
 
+            // Validate against a schedule without the original appointment (to allow moving without self-conflict)
             const tempSchedule = currentScheduleData.filter(appt => appt.id !== originalApptId);
             const conflicts = checkConflicts(updatedAppointment, tempSchedule);
 
             if (conflicts.length > 0) {
-                showAlert(`فشل حفظ التعديلات: ${conflicts.join(' | ')}`, 'danger');
+                showAlert(`فشل حفظ التعديلات بسبب تعارضات: ${conflicts.join(' | ')}`, 'danger');
                 const suggestions = suggestAlternativeTimes(updatedAppointment);
                 if (suggestions.length > 0) {
                     showAlert(`اقتراحات لأوقات بديلة: ${suggestions.map(s => `[${s.day} ${s.timeRange} في ${s.room}]`).join(' | ')}`, 'info');
@@ -1901,16 +2135,16 @@ const setupEventListeners = () => {
                     showAlert('لا توجد أوقات بديلة مقترحة.', 'info');
                 }
             } else {
-                currentScheduleData[originalAppointmentIndex] = updatedAppointment;
-                setCurrentSchedule(currentScheduleData);
-                renderScheduleGrid();
+                currentScheduleData[originalAppointmentIndex] = updatedAppointment; // Update the original array
+                setCurrentSchedule(currentScheduleData); // Save to LocalStorage
+                renderScheduleGrid(); // Re-render the grid
                 closeEditModal();
-                showAlert('تم حفظ التعديلات بنجاح.', 'success');
+                showAlert('تم حفظ التعديلات بنجاح!', 'success');
             }
         });
     }
 
-    // Delete appointment from modal
+    // Delete Appointment Button (inside modal)
     if (deleteApptBtn) {
         deleteApptBtn.addEventListener('click', () => {
             if (confirm('هل أنت متأكد من حذف هذا الموعد؟')) {
@@ -1926,15 +2160,18 @@ const setupEventListeners = () => {
     }
 };
 
+/**
+ * Initializes the application: loads data, sets up dummy data if empty, and configures event listeners.
+ */
 const initializeApp = () => {
     loadData();
-    // Initialize dummy data only if storage is empty
+    // Initialize dummy data only if storage is completely empty
     if (getProfessors().length === 0 && getRooms().length === 0 && getCourses().length === 0) {
         initializeDummyData();
     }
     setupEventListeners();
-    showSection('data-entry'); // Default starting section
+    showSection('data-entry'); // Default starting section: Data Entry
 };
 
-// Initialize the app when DOM is ready
+// Initialize the app when DOM content is fully loaded
 document.addEventListener('DOMContentLoaded', initializeApp);
