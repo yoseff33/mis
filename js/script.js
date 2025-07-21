@@ -3,15 +3,20 @@
 // ======================================================
 // Global Constants & Helpers
 // ======================================================
-const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
-const TIME_SLOTS = [
+let DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]; // يمكن تخصيصها مستقبلاً
+let TIME_SLOTS = [ // ستصبح قابلة للتخصيص
     "8:00-9:40", "10:00-11:40", "12:00-13:40", "14:00-15:40", "16:00-17:40"
 ]; // Standard slot duration: 100 minutes
 
-const TIME_SLOTS_MINUTES = TIME_SLOTS.map(parseTimeRange).map(t => ({
-    start: toMinutes(t.start),
-    end: toMinutes(t.end)
-})); // لتحويل الأوقات إلى دقائق لسهولة المقارنة
+let TIME_SLOTS_MINUTES = []; // ستُحسب ديناميكياً
+
+const calculateTimeSlotsMinutes = () => {
+    TIME_SLOTS_MINUTES = TIME_SLOTS.map(parseTimeRange).map(t => ({
+        start: toMinutes(t.start),
+        end: toMinutes(t.end)
+    }));
+};
+
 
 /**
  * Gets the Arabic name of a day by its index (0=Sunday, 1=Monday, etc.).
@@ -30,7 +35,7 @@ const getDayName = (dayIndex) => {
  */
 const parseTimeRange = (timeRange) => {
     if (typeof timeRange !== 'string' || !timeRange.includes('-')) {
-        console.error("Invalid time range string:", timeRange);
+        // console.warn("Invalid time range string:", timeRange);
         return null; // Return null for invalid input
     }
     const [start, end] = timeRange.split('-');
@@ -94,7 +99,9 @@ const STORAGE_KEYS = {
     ROOMS: 'rooms',
     COURSES: 'courses',
     SCHEDULES: 'schedules',
-    CURRENT_SCHEDULE: 'currentSchedule'
+    CURRENT_SCHEDULE: 'currentSchedule',
+    CUSTOM_TIME_SLOTS: 'customTimeSlots', // مفتاح جديد للفترات الزمنية المخصصة
+    ACADEMIC_PERIOD: 'academicPeriod' // مفتاح جديد للفترة الأكاديمية
 };
 
 let professors = [];
@@ -102,6 +109,7 @@ let rooms = [];
 let courses = [];
 let schedules = [];
 let currentSchedule = [];
+let academicPeriod = { year: new Date().getFullYear(), semester: 'الأول' }; // الفترة الأكاديمية الافتراضية
 
 const loadData = () => {
     professors = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFESSORS)) || [];
@@ -109,7 +117,14 @@ const loadData = () => {
     courses = JSON.parse(localStorage.getItem(STORAGE_KEYS.COURSES)) || [];
     schedules = JSON.parse(localStorage.getItem(STORAGE_KEYS.SCHEDULES)) || [];
     currentSchedule = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_SCHEDULE)) || [];
-    console.log("Data loaded:", { professors, rooms, courses, currentSchedule, schedules });
+    const savedTimeSlots = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOM_TIME_SLOTS));
+    if (savedTimeSlots && savedTimeSlots.length > 0) {
+        TIME_SLOTS = savedTimeSlots;
+    }
+    academicPeriod = JSON.parse(localStorage.getItem(STORAGE_KEYS.ACADEMIC_PERIOD)) || academicPeriod;
+
+    calculateTimeSlotsMinutes(); // حساب الدقائق بعد تحميل TIME_SLOTS
+    console.log("Data loaded:", { professors, rooms, courses, currentSchedule, schedules, TIME_SLOTS, academicPeriod });
 };
 
 const saveData = () => {
@@ -118,6 +133,8 @@ const saveData = () => {
     localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
     localStorage.setItem(STORAGE_KEYS.CURRENT_SCHEDULE, JSON.stringify(currentSchedule));
     localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(schedules));
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_TIME_SLOTS, JSON.stringify(TIME_SLOTS));
+    localStorage.setItem(STORAGE_KEYS.ACADEMIC_PERIOD, JSON.stringify(academicPeriod));
     console.log("Data saved.");
 };
 
@@ -196,7 +213,15 @@ const saveScheduleVersion = (name) => {
         showAlert('لا يوجد جدول حالي لحفظه كنسخة.', 'warning');
         return;
     }
-    schedules.push({ id: generateUniqueId(), name: name, timestamp: new Date(), schedule: [...currentSchedule] });
+    const currentAcademicPeriod = JSON.parse(localStorage.getItem(STORAGE_KEYS.ACADEMIC_PERIOD)) || { year: 'غير محدد', semester: 'غير محدد' };
+    schedules.push({
+        id: generateUniqueId(),
+        name: name,
+        timestamp: new Date(),
+        schedule: [...currentSchedule],
+        academicYear: currentAcademicPeriod.year, // حفظ السنة
+        academicSemester: currentAcademicPeriod.semester // حفظ الفصل
+    });
     saveData();
     showAlert(`تم حفظ نسخة من الجدول باسم: ${name}`, 'success');
 };
@@ -311,7 +336,8 @@ const processUploadedData = (data, type, resolve, reject) => {
                 newEntries = data.map(row => ({
                     id: generateUniqueId(),
                     name: String(row.name || 'غير معروف'),
-                    sectionName: String(row.sectionName || ''), // إضافة اسم الشعبة
+                    sectionName: String(row.sectionName || ''),
+                    department: String(row.department || ''), // إضافة القسم
                     professorId: String(row.professorId || null),
                     hours: parseInt(row.hours) || 0,
                     labHours: parseInt(row.labHours) || 0,
@@ -349,18 +375,20 @@ const initializeDummyData = () => {
 
     ];
     courses = [
-        { id: 'c1', name: "مقدمة في البرمجة", sectionName: "أ", professorId: 'p1', hours: 3, labHours: 1, preferredTimes: ["الأحد:08:00-09:40"], notes: "مادة أساسية" },
-        { id: 'c1b', name: "مقدمة في البرمجة", sectionName: "ب", professorId: 'p2', hours: 3, labHours: 1, preferredTimes: ["الثلاثاء:08:00-09:40"], notes: "مادة أساسية" }, // شعبة أخرى
-        { id: 'c2', name: "هياكل البيانات", sectionName: "أ", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: ["الثلاثاء:10:00-11:40"], notes: "" },
-        { id: 'c3', name: "شبكات الحاسوب", sectionName: "أ", professorId: 'p1', hours: 3, labHours: 0, preferredTimes: [], notes: "" },
-        { id: 'c4', name: "قواعد البيانات", sectionName: "أ", professorId: 'p3', hours: 3, labHours: 1, preferredTimes: [], notes: "" },
-        { id: 'c5', name: "ذكاء اصطناعي", sectionName: "أ", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: [], notes: "" },
-        { id: 'c6', name: "تحليل وتصميم نظم", sectionName: "أ", professorId: 'p3', hours: 3, labHours: 0, preferredTimes: [], notes: "مشروع" },
-        { id: 'c7', name: "الخوارزميات", sectionName: "أ", professorId: 'p4', hours: 3, labHours: 0, preferredTimes: [], notes: "متقدمة" },
-        { id: 'c8', name: "أمن المعلومات", sectionName: "أ", professorId: 'p4', hours: 2, labHours: 1, preferredTimes: [], notes: "عملي" },
+        { id: 'c1', name: "مقدمة في البرمجة", sectionName: "أ", department: "علوم حاسب", professorId: 'p1', hours: 3, labHours: 1, preferredTimes: ["الأحد:08:00-09:40"], notes: "مادة أساسية" },
+        { id: 'c1b', name: "مقدمة في البرمجة", sectionName: "ب", department: "علوم حاسب", professorId: 'p2', hours: 3, labHours: 1, preferredTimes: ["الثلاثاء:08:00-09:40"], notes: "مادة أساسية" },
+        { id: 'c2', name: "هياكل البيانات", sectionName: "أ", department: "علوم حاسب", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: ["الثلاثاء:10:00-11:40"], notes: "" },
+        { id: 'c3', name: "شبكات الحاسوب", sectionName: "أ", department: "هندسة برمجيات", professorId: 'p1', hours: 3, labHours: 0, preferredTimes: [], notes: "" },
+        { id: 'c4', name: "قواعد البيانات", sectionName: "أ", department: "نظم معلومات", professorId: 'p3', hours: 3, labHours: 1, preferredTimes: [], notes: "" },
+        { id: 'c5', name: "ذكاء اصطناعي", sectionName: "أ", department: "علوم حاسب", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: [], notes: "" },
+        { id: 'c6', name: "تحليل وتصميم نظم", sectionName: "أ", department: "نظم معلومات", professorId: 'p3', hours: 3, labHours: 0, preferredTimes: [], notes: "مشروع" },
+        { id: 'c7', name: "الخوارزميات", sectionName: "أ", department: "هندسة برمجيات", professorId: 'p4', hours: 3, labHours: 0, preferredTimes: [], notes: "متقدمة" },
+        { id: 'c8', name: "أمن المعلومات", sectionName: "أ", department: "أمن سيبراني", professorId: 'p4', hours: 2, labHours: 1, preferredTimes: [], notes: "عملي" },
     ];
     currentSchedule = [];
     schedules = [];
+    // لا تقوم بتهيئة customTimeSlots هنا، دعها تُحمل من localStorage أو تستخدم الافتراضي
+    // لا تقوم بتهيئة academicPeriod هنا، دعها تُحمل من localStorage أو تستخدم الافتراضي
     saveData();
     console.log("Dummy data initialized and saved.");
 };
@@ -521,14 +549,15 @@ const generateSchedule = () => {
             schedulingUnits.push({
                 courseId: course.id,
                 courseName: course.name,
-                sectionName: course.sectionName, // إضافة اسم الشعبة هنا
+                sectionName: course.sectionName,
+                department: course.department, // إضافة القسم
                 professorId: course.professorId,
                 isLabSession: i < Math.ceil((course.labHours * 60) / 100), // Mark if this unit is specifically for lab
                 preferredTimes: course.preferredTimes,
                 notes: course.notes,
                 originalCourseHours: course.hours,
                 originalLabHours: course.labHours,
-                unitIndex: i + 1 // To differentiate units of the same course
+                unitIndex: i + 1
             });
         }
     });
@@ -537,9 +566,19 @@ const generateSchedule = () => {
     // 1. Units with preferred times (harder to place)
     // 2. Lab sessions (fewer dedicated rooms)
     // 3. Courses with higher professor priority (assigned earlier)
+    // 4. Group by department (conceptual - simplified for this implementation)
     schedulingUnits.sort((a, b) => {
         const profA = professorsData.find(p => p.id === a.professorId);
         const profB = professorsData.find(p => p.id === b.professorId);
+
+        // Prioritize by department (conceptual: try to schedule one department block then another)
+        // For full department-specific scheduling, this needs more complex grouping and iterative attempts.
+        if (a.department && b.department && a.department !== b.department) {
+            // Simple alphabetical sort for departments for consistency
+            const departmentCompare = a.department.localeCompare(b.department);
+            if (departmentCompare !== 0) return departmentCompare;
+        }
+
 
         // Prioritize preferred times (units with preferred times come first)
         if (a.preferredTimes.length > 0 && b.preferredTimes.length === 0) return -1;
@@ -618,31 +657,30 @@ const generateSchedule = () => {
             );
 
             // Prioritize rooms based on location group to reduce professor travel
-            // This is a simple heuristic: try to keep appointments in the same building as previous ones if possible
             suitableRooms.sort((a, b) => {
-                // Find last scheduled appointment for this professor
                 const lastApptForProf = newSchedule.slice().reverse().find(appt => appt.professorId === professor.id && appt.day === day);
                 const lastApptRoom = lastApptForProf ? roomsData.find(r => r.id === lastApptForProf.roomId) : null;
 
                 if (lastApptRoom && a.locationGroup && b.locationGroup) {
                     const aMatchesLast = a.locationGroup === lastApptRoom.locationGroup;
                     const bMatchesLast = b.locationGroup === lastApptRoom.locationGroup;
-                    if (aMatchesLast && !bMatchesLast) return -1; // 'a' is better if it matches last room group
-                    if (!aMatchesLast && bMatchesLast) return 1;  // 'b' is better
+                    if (aMatchesLast && !bMatchesLast) return -1;
+                    if (!aMatchesLast && bMatchesLast) return 1;
                 }
                 return 0.5 - Math.random(); // Randomize otherwise for scenario diversity
             });
 
             for (const room of suitableRooms) {
                 const potentialAppointment = {
-                    id: generateUniqueId(), // Unique ID for each scheduled session
+                    id: generateUniqueId(),
                     courseId: unit.courseId,
                     courseName: unit.courseName,
-                    sectionName: unit.sectionName, // تأكد من وجودها هنا
+                    sectionName: unit.sectionName,
+                    department: unit.department, // إضافة القسم
                     professorId: professor.id,
-                    professorName: professor.name, // Store professor name for display ease
+                    professorName: professor.name,
                     roomId: room.id,
-                    roomName: room.name, // Store room name for display ease
+                    roomName: room.name,
                     type: unit.isLabSession ? "lab" : "lecture",
                     day: day,
                     timeRange: timeRange,
@@ -653,10 +691,10 @@ const generateSchedule = () => {
                 if (conflicts.length === 0) {
                     newSchedule.push(potentialAppointment);
                     assigned = true;
-                    break; // Slot and room found for this unit
+                    break;
                 }
             }
-            if (assigned) break; // Slot found for this unit
+            if (assigned) break;
         }
 
         if (!assigned) {
@@ -673,7 +711,7 @@ const generateSchedule = () => {
         if (dayOrder !== 0) return dayOrder;
         const timeA = parseTimeRange(a.timeRange);
         const timeB = parseTimeRange(b.timeRange);
-        if (!timeA || !timeB) return 0; // Handle invalid time ranges gracefully during sort
+        if (!timeA || !timeB) return 0;
         return toMinutes(timeA.start) - toMinutes(timeB.start);
     });
 
@@ -693,10 +731,8 @@ const optimizeScheduleForGaps = () => {
     let professorsData = getProfessors();
     let changesMade = false;
 
-    // لنسخ الجدول مؤقتًا وتجنب تعديل الأصل مباشرة أثناء البحث عن حلول
-    let tempSchedule = JSON.parse(JSON.stringify(schedule));
+    let tempSchedule = JSON.parse(JSON.stringify(schedule)); // استخدم نسخة للعمل عليها
 
-    // تجميع المواعيد لكل دكتور ولكل يوم
     const profDailySchedule = {};
     professorsData.forEach(prof => {
         profDailySchedule[prof.id] = {};
@@ -720,41 +756,34 @@ const optimizeScheduleForGaps = () => {
                 return toMinutes(timeA.start) - toMinutes(timeB.start);
             });
 
-            // إذا كان هناك أكثر من موعد، حاول تقليل الفجوات
             if (appointments.length > 1) {
                 for (let i = 0; i < appointments.length; i++) {
                     const currentAppt = appointments[i];
                     const currentTimeSlotIndex = TIME_SLOTS.indexOf(currentAppt.timeRange);
 
-                    // حاول تحريك الموعد الحالي إلى فترة زمنية سابقة في نفس اليوم
                     for (let j = 0; j < currentTimeSlotIndex; j++) {
                         const potentialNewTimeRange = TIME_SLOTS[j];
                         const potentialNewTimeSlot = parseTimeRange(potentialNewTimeRange);
 
                         if (!potentialNewTimeSlot) continue;
 
-                        // إنشاء موعد محتمل جديد
                         const potentialAppt = {
                             ...currentAppt,
                             day: day,
                             timeRange: potentialNewTimeRange
                         };
 
-                        // تحقق من التعارضات مع الجدول الحالي (مع استبعاد الموعد الأصلي)
                         const conflicts = checkConflicts(potentialAppt, tempSchedule.filter(a => a.id !== currentAppt.id));
 
-                        // إذا لم يكن هناك تعارض وانتقلت إلى فترة زمنية سابقة فعليًا
                         if (conflicts.length === 0 && potentialNewTimeRange !== currentAppt.timeRange) {
-                            // ابحث عن الموعد الأصلي في tempSchedule وقم بتحديثه
                             const originalIndexInTemp = tempSchedule.findIndex(a => a.id === currentAppt.id);
                             if (originalIndexInTemp > -1) {
                                 tempSchedule[originalIndexInTemp] = potentialAppt;
                                 changesMade = true;
-                                // تحديث قائمة المواعيد لهذا الدكتور/اليوم لتعكس التغيير قبل البحث عن تحسينات أخرى
                                 appointments[i] = potentialAppt;
                                 appointments.sort((a, b) => toMinutes(parseTimeRange(a.timeRange).start) - toMinutes(parseTimeRange(b.timeRange).start));
                                 showAlert(`تم تحسين موعد ${currentAppt.courseName} للدكتور ${currentAppt.professorName} في ${day} إلى ${potentialNewTimeRange}.`, 'info');
-                                break; // تم تحريك الموعد، انتقل للموعد التالي
+                                break;
                             }
                         }
                     }
@@ -764,13 +793,86 @@ const optimizeScheduleForGaps = () => {
     }
 
     if (changesMade) {
-        setCurrentSchedule(tempSchedule); // حفظ الجدول بعد التحسينات
+        setCurrentSchedule(tempSchedule);
         renderScheduleGrid();
         showAlert('تمت محاولة تحسين الجدول بنجاح!', 'success');
     } else {
         showAlert('لم يتم العثور على تحسينات لتقليل الفجوات في الجدول الحالي.', 'info');
     }
 };
+
+/**
+ * يحاول إصلاح جميع التعارضات في الجدول الحالي تلقائيًا. (ميزة مبسطة - قد لا تحل جميع التعارضات)
+ * يعتمد على تكرار محاولات نقل المواعيد المتعارضة إلى أوقات بديلة.
+ */
+const fixAllConflictsAutomatically = () => {
+    showAlert('جاري محاولة إصلاح جميع التعارضات تلقائيًا...', 'info');
+    let schedule = getCurrentSchedule();
+    let conflictsResolvedCount = 0;
+    const maxIterations = 5; // عدد المحاولات لتجنب الحلقات اللانهائية
+
+    for (let iter = 0; iter < maxIterations; iter++) {
+        let initialConflicts = validateFullSchedule(schedule);
+        if (initialConflicts.length === 0) {
+            break; // لا توجد تعارضات، انتهينا
+        }
+
+        let changesMadeInIteration = false;
+        let tempScheduleCopy = [...schedule]; // نعمل على نسخة مؤقتة
+
+        for (const conflictMsg of initialConflicts) {
+            // محاولة استخراج معرف الموعد المتعارض
+            const courseMatch = conflictMsg.match(/\[موعد ([^\]]+)\]/);
+            if (!courseMatch || !courseMatch[1]) continue;
+
+            const conflictingCourseIdOrName = courseMatch[1];
+            // البحث عن الموعد المتعارض في الجدول
+            const conflictingAppt = tempScheduleCopy.find(appt =>
+                appt.courseName === conflictingCourseIdOrName || appt.courseId === conflictingCourseIdOrName
+            );
+
+            if (conflictingAppt) {
+                // إزالة الموعد المتعارض مؤقتًا من الجدول للبحث عن بدائل له
+                const scheduleWithoutConflictingAppt = tempScheduleCopy.filter(a => a.id !== conflictingAppt.id);
+                const suggestions = suggestAlternativeTimes(conflictingAppt);
+
+                if (suggestions.length > 0) {
+                    // اختيار أول اقتراح كحل (يمكن تحسين هذا لاختيار أفضل اقتراح)
+                    const chosenSuggestion = suggestions[0];
+                    const updatedAppt = {
+                        ...conflictingAppt,
+                        day: chosenSuggestion.day,
+                        timeRange: chosenSuggestion.timeRange
+                    };
+
+                    // التحقق مرة أخرى لتجنب إنشاء تعارضات جديدة
+                    const newConflicts = checkConflicts(updatedAppt, scheduleWithoutConflictingAppt);
+                    if (newConflicts.length === 0) {
+                        tempScheduleCopy = [...scheduleWithoutConflictingAppt, updatedAppt];
+                        changesMadeInIteration = true;
+                        conflictsResolvedCount++;
+                        showAlert(`تم إصلاح تعارض لـ ${conflictingAppt.courseName} بنقله إلى ${chosenSuggestion.day} ${chosenSuggestion.timeRange}.`, 'info');
+                    }
+                }
+            }
+        }
+        schedule = tempScheduleCopy; // تحديث الجدول ليتضمن التغييرات
+        if (!changesMadeInIteration) {
+            break; // لم يتم إجراء أي تغييرات في هذه الجولة، قد نكون عالقين أو لا يمكن حل المزيد
+        }
+    }
+
+    setCurrentSchedule(schedule);
+    renderScheduleGrid();
+    const finalConflicts = validateFullSchedule(schedule);
+
+    if (finalConflicts.length === 0) {
+        showAlert('تم إصلاح جميع التعارضات بنجاح!', 'success');
+    } else {
+        showAlert(`تم إصلاح ${conflictsResolvedCount} تعارضات. لا يزال هناك ${finalConflicts.length} تعارضات متبقية لم يتم حلها تلقائيًا.`, 'warning');
+    }
+};
+
 
 
 /**
@@ -1007,7 +1109,8 @@ const suggestAlternativeTimes = (problematicAppointment) => {
                 id: generateUniqueId(), // Use a temporary ID for checking
                 courseId: problematicAppointment.courseId,
                 courseName: problematicAppointment.courseName,
-                sectionName: problematicAppointment.sectionName, // تأكد من وجود الشعبة هنا
+                sectionName: problematicAppointment.sectionName,
+                department: problematicAppointment.department, // إضافة القسم
                 professorId: problematicAppointment.professorId,
                 professorName: problematicAppointment.professorName,
                 roomId: problematicRoom ? problematicRoom.id : null,
@@ -1061,6 +1164,7 @@ const uploadCoursesInput = document.getElementById('upload-courses');
 const generateScheduleBtn = document.getElementById('generate-schedule');
 const saveCurrentScheduleBtn = document.getElementById('save-current-schedule');
 const loadSavedSchedulesBtn = document.getElementById('load-saved-schedules');
+const fixAllConflictsBtn = document.getElementById('fix-all-conflicts-btn'); // زر جديد
 
 const reportsSection = document.getElementById('reports');
 const professorSchedulesSection = document.getElementById('professor-schedules');
@@ -1083,8 +1187,22 @@ const editApptDay = document.getElementById('edit-appt-day');
 const editApptTimeRange = document.getElementById('edit-appt-time-range');
 const editApptNotes = document.getElementById('edit-appt-notes');
 
-// إضافة عنصر البحث الجديد
 const globalSearchInput = document.getElementById('global-search');
+
+// عناصر الفترات الزمنية المخصصة
+const customTimeSlotsTextArea = document.getElementById('custom-time-slots');
+const timeSlotsForm = document.getElementById('time-slots-form');
+
+// عناصر الفترة الأكاديمية
+const academicPeriodForm = document.getElementById('academic-period-form');
+const currentAcademicYearInput = document.getElementById('current-academic-year');
+const currentAcademicSemesterInput = document.getElementById('current-academic-semester');
+
+// عناصر الـ datalist للاقتراحات الذكية
+const profNamesSuggestions = document.getElementById('prof-names-suggestions');
+const roomNamesSuggestions = document.getElementById('room-names-suggestions');
+const courseNamesSuggestions = document.getElementById('course-names-suggestions');
+const departmentSuggestions = document.getElementById('department-suggestions');
 
 
 // UI Helpers
@@ -1111,15 +1229,27 @@ const showSection = (sectionId) => {
         renderScheduleGrid();
     } else if (sectionId === 'data-entry') {
         renderDataEntryForms();
-        // عند التبديل إلى قسم إدخال البيانات، أعد عرض القوائم مع أي نص بحث موجود
         const currentSearchTerm = globalSearchInput ? globalSearchInput.value : '';
         renderProfessorList(currentSearchTerm);
         renderRoomList(currentSearchTerm);
         renderCourseList(currentSearchTerm);
+        populateDatalists(); // تحديث اقتراحات الإدخال اليدوي
     } else if (sectionId === 'reports') {
         renderReports();
     } else if (sectionId === 'professor-schedules') {
         renderProfessorSchedules();
+    } else if (sectionId === 'settings') {
+        // تحديث واجهة إعدادات الفترات الزمنية
+        if (customTimeSlotsTextArea) {
+            customTimeSlotsTextArea.value = TIME_SLOTS.join('\n');
+        }
+        // تحديث واجهة إعدادات الفترة الأكاديمية
+        if (currentAcademicYearInput) {
+            currentAcademicYearInput.value = academicPeriod.year;
+        }
+        if (currentAcademicSemesterInput) {
+            currentAcademicSemesterInput.value = academicPeriod.semester;
+        }
     }
 };
 
@@ -1153,6 +1283,27 @@ const renderDataEntryForms = () => {
         });
     }
 };
+
+const populateDatalists = () => {
+    // اقتراحات أسماء الدكاترة
+    if (profNamesSuggestions) {
+        profNamesSuggestions.innerHTML = getProfessors().map(prof => `<option value="${prof.name}">`).join('');
+    }
+    // اقتراحات أسماء القاعات
+    if (roomNamesSuggestions) {
+        roomNamesSuggestions.innerHTML = getRooms().map(room => `<option value="${room.name}">`).join('');
+    }
+    // اقتراحات أسماء المواد
+    if (courseNamesSuggestions) {
+        courseNamesSuggestions.innerHTML = getCourses().map(course => `<option value="${course.name}">`).join('');
+    }
+    // اقتراحات أسماء الأقسام
+    if (departmentSuggestions) {
+        const uniqueDepartments = [...new Set(getCourses().map(course => course.department).filter(dep => dep))];
+        departmentSuggestions.innerHTML = uniqueDepartments.map(dep => `<option value="${dep}">`).join('');
+    }
+};
+
 
 const renderProfessorList = (searchTerm = '') => { // إضافة searchTerm
     const professorsData = getProfessors();
@@ -1260,6 +1411,7 @@ const renderCourseList = (searchTerm = '') => { // إضافة searchTerm
         const profName = professorsData.find(p => p.id === course.professorId)?.name || 'غير محدد';
         return course.name.toLowerCase().includes(lowerCaseSearchTerm) ||
                (course.sectionName && course.sectionName.toLowerCase().includes(lowerCaseSearchTerm)) || // البحث باسم الشعبة
+               (course.department && course.department.toLowerCase().includes(lowerCaseSearchTerm)) || // البحث باسم القسم
                profName.toLowerCase().includes(lowerCaseSearchTerm) ||
                (course.notes && course.notes.toLowerCase().includes(lowerCaseSearchTerm)) ||
                course.preferredTimes.some(time => time.toLowerCase().includes(lowerCaseSearchTerm));
@@ -1273,10 +1425,11 @@ const renderCourseList = (searchTerm = '') => { // إضافة searchTerm
             const profName = professorsData.find(p => p.id === course.professorId)?.name || 'غير محدد';
             const preferredTimesText = course.preferredTimes.length > 0 ? `(مفضلة: ${course.preferredTimes.join(', ')})` : '';
             const sectionDisplay = course.sectionName ? ` (شعبة: ${course.sectionName})` : ''; // عرض الشعبة
+            const departmentDisplay = course.department ? ` (قسم: ${course.department})` : ''; // عرض القسم
             const li = document.createElement('li');
             li.innerHTML = `
                 <div>
-                    <strong>${course.name}${sectionDisplay}</strong> (دكتور: ${profName})<br>
+                    <strong>${course.name}${sectionDisplay}</strong> ${departmentDisplay} (دكتور: ${profName})<br>
                     <span>ساعات: ${course.hours} نظري, ${course.labHours} عملي ${preferredTimesText}</span><br>
                     <span>ملاحظات: ${course.notes || '-'}</span>
                 </div>
@@ -1297,7 +1450,7 @@ const openEditModal = (appointmentData) => {
 
     // Populate modal fields with appointment data
     editApptOriginalId.value = appointmentData.id;
-    editApptCourseName.value = `${appointmentData.courseName || `مادة ${appointmentData.courseId}`} ${appointmentData.sectionName ? '(' + appointmentData.sectionName + ')' : ''}`; // عرض الشعبة
+    editApptCourseName.value = `${appointmentData.courseName || `مادة ${appointmentData.courseId}`} ${appointmentData.sectionName ? '(' + appointmentData.sectionName + ')' : ''}`;
     editApptNotes.value = appointmentData.notes || '';
 
     // Populate Professor Select
@@ -1469,20 +1622,46 @@ const addDragStartListeners = () => {
             draggedItem = null;
             draggedAppointmentId = null;
             // Remove 'drag-over' class from any cells that might still have it
-            document.querySelectorAll('.schedule-cell.drag-over').forEach(cell => {
-                cell.classList.remove('drag-over');
+            document.querySelectorAll('.schedule-cell.drag-over-ok, .schedule-cell.drag-over-conflict').forEach(cell => {
+                cell.classList.remove('drag-over-ok', 'drag-over-conflict');
             });
         });
     });
 };
 
 /**
- * Handles the dragover event for schedule cells.
+ * Handles the dragover event for schedule cells, providing visual feedback.
  * @param {DragEvent} e
  */
 const handleDragOver = (e) => {
     e.preventDefault(); // Allow drop
-    e.currentTarget.classList.add('drag-over');
+    const targetCell = e.currentTarget;
+    const newDay = targetCell.dataset.day;
+    const newTime = targetCell.dataset.time;
+
+    if (!draggedAppointmentId || !newDay || !newTime) return;
+
+    const currentScheduleData = getCurrentSchedule();
+    const originalAppointment = currentScheduleData.find(appt => appt.id === draggedAppointmentId);
+
+    if (!originalAppointment) return;
+
+    const updatedAppointment = { ...originalAppointment, day: newDay, timeRange: newTime };
+    const tempSchedule = currentScheduleData.filter(appt => appt.id !== draggedAppointmentId);
+    const conflicts = checkConflicts(updatedAppointment, tempSchedule);
+
+    // إزالة الفئات القديمة
+    document.querySelectorAll('.schedule-cell.drag-over-ok, .schedule-cell.drag-over-conflict').forEach(cell => {
+        cell.classList.remove('drag-over-ok', 'drag-over-conflict');
+    });
+
+    if (conflicts.length === 0) {
+        targetCell.classList.add('drag-over-ok');
+    } else {
+        targetCell.classList.add('drag-over-conflict');
+        // يمكن عرض تلميح أداة مع رسائل التعارض هنا
+        // مثلاً: targetCell.title = conflicts.join('\n');
+    }
 };
 
 /**
@@ -1490,7 +1669,7 @@ const handleDragOver = (e) => {
  * @param {DragEvent} e
  */
 const handleDragLeave = (e) => {
-    e.currentTarget.classList.remove('drag-over');
+    e.currentTarget.classList.remove('drag-over-ok', 'drag-over-conflict');
 };
 
 /**
@@ -1500,7 +1679,7 @@ const handleDragLeave = (e) => {
 const handleDrop = (e) => {
     e.preventDefault();
     const targetCell = e.currentTarget;
-    targetCell.classList.remove('drag-over');
+    targetCell.classList.remove('drag-over-ok', 'drag-over-conflict'); // إزالة الفئات عند الإفلات
 
     if (draggedItem && draggedAppointmentId) {
         const newDay = targetCell.dataset.day;
@@ -1512,7 +1691,6 @@ const handleDrop = (e) => {
         }
 
         const currentScheduleData = getCurrentSchedule();
-        // Find the original appointment object using its unique ID
         const originalAppointment = currentScheduleData.find(appt => appt.id === draggedAppointmentId);
 
         if (!originalAppointment) {
@@ -1520,11 +1698,8 @@ const handleDrop = (e) => {
             return;
         }
 
-        // Create a temporary updated version of the appointment
         const updatedAppointment = { ...originalAppointment, day: newDay, timeRange: newTime };
 
-        // Create a temporary schedule by filtering out the original appointment
-        // to check conflicts against the rest of the schedule.
         const tempSchedule = currentScheduleData.filter(appt => appt.id !== draggedAppointmentId);
         const conflicts = checkConflicts(updatedAppointment, tempSchedule);
 
@@ -1537,10 +1712,9 @@ const handleDrop = (e) => {
                 showAlert('لا توجد أوقات بديلة مقترحة.', 'info');
             }
         } else {
-            // If no conflicts, update the actual currentSchedule
             const finalSchedule = [...tempSchedule, updatedAppointment];
-            setCurrentSchedule(finalSchedule); // Save to LocalStorage
-            renderScheduleGrid(); // Re-render the grid to reflect changes
+            setCurrentSchedule(finalSchedule);
+            renderScheduleGrid();
             showAlert('تم تعديل الجدول بنجاح!', 'success');
         }
     }
@@ -1826,6 +2000,7 @@ const renderProfessorSchedules = () => {
                         <th>الوقت</th>
                         <th>المادة</th>
                         <th>القاعة/المعمل</th>
+                        <th>القسم</th>
                         <th>ملاحظات</th>
                     </tr>
                 </thead>
@@ -1846,8 +2021,9 @@ const renderProfessorSchedules = () => {
                 const row = table.insertRow();
                 row.insertCell().textContent = appt.day;
                 row.insertCell().textContent = appt.timeRange;
-                row.insertCell().textContent = `${appt.courseName} ${appt.sectionName ? '(' + appt.sectionName + ')' : ''}`; // عرض الشعبة
+                row.insertCell().textContent = `${appt.courseName} ${appt.sectionName ? '(' + appt.sectionName + ')' : ''}`;
                 row.insertCell().textContent = appt.roomName;
+                row.insertCell().textContent = appt.department || '-'; // عرض القسم
                 row.insertCell().textContent = appt.notes || '-';
             });
             profDiv.appendChild(table);
@@ -1887,6 +2063,7 @@ const printProfessorSchedule = (profId) => {
                         <th>الوقت</th>
                         <th>المادة</th>
                         <th>القاعة/المعمل</th>
+                        <th>القسم</th>
                         <th>ملاحظات</th>
                     </tr>
                 </thead>
@@ -1906,7 +2083,9 @@ const printProfessorSchedule = (profId) => {
                 <tr>
                     <td>${appt.day}</td>
                     <td>${appt.timeRange}</td>
-                    <td>${appt.courseName} ${appt.sectionName ? '(' + appt.sectionName + ')' : ''}</td> <td>${appt.roomName}</td>
+                    <td>${appt.courseName} ${appt.sectionName ? '(' + appt.sectionName + ')' : ''}</td>
+                    <td>${appt.roomName}</td>
+                    <td>${appt.department || '-'}</td>
                     <td>${appt.notes || '-'}</td>
                 </tr>
             `;
@@ -1951,7 +2130,7 @@ const exportScheduleToPDF = () => {
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
         pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        pdf.save('جدول-المواعيد.pdf');
+        pdf.save(`جدول-المواعيد-${academicPeriod.year}-${academicPeriod.semester}.pdf`);
         showAlert('تم تصدير الجدول إلى PDF بنجاح.', 'success');
     }).catch(error => {
         console.error("خطأ في تصدير PDF:", error);
@@ -1974,7 +2153,7 @@ const exportScheduleToExcel = () => {
     }
 
     const data = [
-        ["اليوم", "الوقت", "المادة", "الدكتور", "القاعة/المعمل", "النوع", "ملاحظات", "الشعبة"] // Header row
+        ["اليوم", "الوقت", "المادة", "الدكتور", "القاعة/المعمل", "النوع", "القسم", "الشعبة", "ملاحظات"] // Header row
     ];
 
     schedule.forEach(appt => {
@@ -1985,8 +2164,9 @@ const exportScheduleToExcel = () => {
             appt.professorName || appt.professorId,
             appt.roomName || appt.roomId,
             appt.type,
-            appt.notes || '',
-            appt.sectionName || '' // إضافة الشعبة
+            appt.department || '', // إضافة القسم
+            appt.sectionName || '',
+            appt.notes || ''
         ]);
     });
 
@@ -1995,7 +2175,7 @@ const exportScheduleToExcel = () => {
     XLSX.utils.book_append_sheet(wb, ws, "الجدول الدراسي"); // Append sheet to workbook
 
     // Write workbook to a file
-    XLSX.writeFile(wb, "جدول-المواعيد.xlsx");
+    XLSX.writeFile(wb, `جدول-المواعيد-${academicPeriod.year}-${academicPeriod.semester}.xlsx`);
     showAlert('تم تصدير الجدول إلى ملف Excel (.xlsx) بنجاح.', 'success');
 };
 
@@ -2015,7 +2195,7 @@ const exportScheduleToImage = () => {
 
     html2canvas(scheduleElement, { scale: 2, useCORS: true, logging: false }).then(canvas => {
         const link = document.createElement('a');
-        link.download = 'جدول-المواعيد.png';
+        link.download = `جدول-المواعيد-${academicPeriod.year}-${academicPeriod.semester}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
         showAlert('تم تصدير الجدول إلى صورة بنجاح.', 'success');
@@ -2049,11 +2229,10 @@ const setupEventListeners = () => {
                 priority: parseInt(formData.get('profPriority')) || 0,
                 preferences: {
                     noFriday: formData.get('profNoFriday') === 'on'
-                    // Add other preferences here if you have checkboxes for them
                 }
             };
             addProfessor(newProf);
-            renderProfessorList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
+            renderProfessorList(globalSearchInput ? globalSearchInput.value : '');
             renderDataEntryForms(); // Update professor dropdown in course form
             professorForm.reset();
             showAlert('تم إضافة الدكتور بنجاح.', 'success');
@@ -2072,7 +2251,7 @@ const setupEventListeners = () => {
                 locationGroup: formData.get('roomLocationGroup') || ''
             };
             addRoom(newRoom);
-            renderRoomList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
+            renderRoomList(globalSearchInput ? globalSearchInput.value : '');
             roomForm.reset();
             showAlert('تم إضافة القاعة/المعمل بنجاح.', 'success');
         });
@@ -2084,16 +2263,19 @@ const setupEventListeners = () => {
             e.preventDefault();
             const formData = new FormData(courseForm);
             const newCourse = {
+                id: generateUniqueId(), // توليد ID هنا لأننا لا نستخدم دالة addCourse مباشرة الآن في هذا الجزء
                 name: formData.get('courseName'),
-                sectionName: formData.get('courseSectionName') || '', // التقاط اسم الشعبة
+                sectionName: formData.get('courseSectionName') || '',
+                department: formData.get('courseDepartment') || '', // التقاط القسم
                 professorId: formData.get('courseProfessorId'),
                 hours: parseInt(formData.get('courseHours')) || 0,
                 labHours: parseInt(formData.get('courseLabHours')) || 0,
                 preferredTimes: formData.get('coursePreferredTimes') ? formData.get('coursePreferredTimes').split(',').map(s => s.trim()).filter(s => s) : [],
                 notes: formData.get('courseNotes') || ''
             };
-            addCourse(newCourse);
-            renderCourseList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
+            addCourse(newCourse); // استخدام addCourse لضمان حفظ البيانات
+            renderCourseList(globalSearchInput ? globalSearchInput.value : '');
+            renderDataEntryForms();
             courseForm.reset();
             showAlert('تم إضافة المادة بنجاح.', 'success');
         });
@@ -2101,7 +2283,7 @@ const setupEventListeners = () => {
 
     // Event delegation for delete/edit buttons in data lists
     document.addEventListener('click', (e) => {
-        if (e.target.closest('.delete-btn')) { // Use closest for better click detection on icon
+        if (e.target.closest('.delete-btn')) {
             const btn = e.target.closest('.delete-btn');
             const id = btn.dataset.id;
             const type = btn.dataset.type;
@@ -2114,11 +2296,11 @@ const setupEventListeners = () => {
                 renderRoomList(currentSearchTerm);
                 renderCourseList(currentSearchTerm);
                 renderDataEntryForms();
-                renderScheduleGrid(); // Re-render schedule if data changed
+                renderScheduleGrid();
                 showAlert(`تم حذف الـ ${type} بنجاح.`, 'success');
             }
         }
-        if (e.target.closest('.edit-btn')) { // TODO: Implement actual edit modal/form population for data lists
+        if (e.target.closest('.edit-btn')) {
             const btn = e.target.closest('.edit-btn');
             const id = btn.dataset.id;
             const type = btn.dataset.type;
@@ -2134,12 +2316,12 @@ const setupEventListeners = () => {
                 try {
                     await uploadFile(file, 'professors');
                     showAlert('تم رفع ملف الدكاترة بنجاح.', 'success');
-                    renderProfessorList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
+                    renderProfessorList(globalSearchInput ? globalSearchInput.value : '');
                     renderDataEntryForms();
                 } catch (error) {
                     showAlert(`خطأ في رفع ملف الدكاترة: ${error}`, 'danger');
                 } finally {
-                    e.target.value = ''; // Clear file input
+                    e.target.value = '';
                 }
             }
         });
@@ -2151,7 +2333,7 @@ const setupEventListeners = () => {
                 try {
                     await uploadFile(file, 'rooms');
                     showAlert('تم رفع ملف القاعات بنجاح.', 'success');
-                    renderRoomList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
+                    renderRoomList(globalSearchInput ? globalSearchInput.value : '');
                 } catch (error) {
                     showAlert(`خطأ في رفع ملف القاعات: ${error}`, 'danger');
                 } finally {
@@ -2167,7 +2349,7 @@ const setupEventListeners = () => {
                 try {
                     await uploadFile(file, 'courses');
                     showAlert('تم رفع ملف المواد بنجاح.', 'success');
-                    renderCourseList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
+                    renderCourseList(globalSearchInput ? globalSearchInput.value : '');
                     renderDataEntryForms();
                 } catch (error) {
                     showAlert(`خطأ في رفع ملف المواد: ${error}`, 'danger');
@@ -2201,10 +2383,15 @@ const setupEventListeners = () => {
         optimizeScheduleBtn.addEventListener('click', optimizeScheduleForGaps);
     }
 
+    // زر إصلاح جميع التعارضات
+    if (fixAllConflictsBtn) {
+        fixAllConflictsBtn.addEventListener('click', fixAllConflictsAutomatically);
+    }
+
     // Save Current Schedule Version Button
     if (saveCurrentScheduleBtn) {
         saveCurrentScheduleBtn.addEventListener('click', () => {
-            const scheduleName = prompt("أدخل اسماً للجدول الذي تريد حفظه كنسخة:");
+            const scheduleName = prompt(`أدخل اسماً للجدول الذي تريد حفظه (الفصل: ${academicPeriod.semester}، السنة: ${academicPeriod.year}):`);
             if (scheduleName) {
                 saveScheduleVersion(scheduleName);
             }
@@ -2222,7 +2409,8 @@ const setupEventListeners = () => {
 
             let message = "اختر جدولاً للتحميل (أدخل الرقم):\n";
             saved.forEach((s, index) => {
-                message += `${index + 1}. ${s.name} (${new Date(s.timestamp).toLocaleString()})\n`;
+                const periodInfo = s.academicYear && s.academicSemester ? ` (${s.academicSemester} ${s.academicYear})` : '';
+                message += `${index + 1}. ${s.name} ${periodInfo} (${new Date(s.timestamp).toLocaleString()})\n`;
             });
 
             const choice = prompt(message);
@@ -2279,7 +2467,6 @@ const setupEventListeners = () => {
 
             const updatedAppointment = { ...currentScheduleData[originalAppointmentIndex], ...updatedFields };
 
-            // Validate against a schedule without the original appointment (to allow moving without self-conflict)
             const tempSchedule = currentScheduleData.filter(appt => appt.id !== originalApptId);
             const conflicts = checkConflicts(updatedAppointment, tempSchedule);
 
@@ -2292,9 +2479,9 @@ const setupEventListeners = () => {
                     showAlert('لا توجد أوقات بديلة مقترحة.', 'info');
                 }
             } else {
-                currentScheduleData[originalAppointmentIndex] = updatedAppointment; // Update the original array
-                setCurrentSchedule(currentScheduleData); // Save to LocalStorage
-                renderScheduleGrid(); // Re-render the grid
+                currentScheduleData[originalAppointmentIndex] = updatedAppointment;
+                setCurrentSchedule(currentScheduleData);
+                renderScheduleGrid();
                 closeEditModal();
                 showAlert('تم حفظ التعديلات بنجاح!', 'success');
             }
@@ -2316,13 +2503,46 @@ const setupEventListeners = () => {
         });
     }
 
-    // إضافة مُستمع الحدث لحقل البحث العام
+    // حقل البحث العام
     if (globalSearchInput) {
         globalSearchInput.addEventListener('input', () => {
             const searchTerm = globalSearchInput.value;
             renderProfessorList(searchTerm);
             renderRoomList(searchTerm);
             renderCourseList(searchTerm);
+        });
+    }
+
+    // إدارة الفترات الزمنية المخصصة
+    if (timeSlotsForm) {
+        timeSlotsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newTimeSlots = customTimeSlotsTextArea.value.split('\n').map(s => s.trim()).filter(s => s && parseTimeRange(s));
+            if (newTimeSlots.length > 0) {
+                TIME_SLOTS = newTimeSlots;
+                calculateTimeSlotsMinutes(); // إعادة حساب الدقائق
+                saveData();
+                renderScheduleGrid(); // إعادة عرض الجدول بالفترات الجديدة
+                showAlert('تم تحديث الفترات الزمنية بنجاح!', 'success');
+            } else {
+                showAlert('الرجاء إدخال فترات زمنية صالحة.', 'danger');
+            }
+        });
+    }
+
+    // إدارة الفترة الأكاديمية
+    if (academicPeriodForm) {
+        academicPeriodForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newYear = parseInt(currentAcademicYearInput.value);
+            const newSemester = currentAcademicSemesterInput.value;
+            if (!isNaN(newYear) && newSemester) {
+                academicPeriod = { year: newYear, semester: newSemester };
+                saveData();
+                showAlert('تم حفظ الفترة الأكاديمية بنجاح!', 'success');
+            } else {
+                showAlert('الرجاء إدخال سنة وفصل دراسي صحيحين.', 'danger');
+            }
         });
     }
 };
@@ -2332,18 +2552,17 @@ const setupEventListeners = () => {
  */
 const initializeApp = () => {
     loadData();
-    // Initialize dummy data only if storage is completely empty
     if (getProfessors().length === 0 && getRooms().length === 0 && getCourses().length === 0) {
         initializeDummyData();
     }
     setupEventListeners();
-    showSection('data-entry'); // Default starting section: Data Entry
+    showSection('data-entry');
     // عند تحميل قسم إدخال البيانات، أعد عرض القوائم مع حقل بحث فارغ في البداية (أو نص البحث الحالي)
     const currentSearchTerm = globalSearchInput ? globalSearchInput.value : '';
     renderProfessorList(currentSearchTerm);
     renderRoomList(currentSearchTerm);
     renderCourseList(currentSearchTerm);
+    populateDatalists(); // تحديث اقتراحات الإدخال اليدوي عند بدء التطبيق
 };
 
-// Initialize the app when DOM content is fully loaded
 document.addEventListener('DOMContentLoaded', initializeApp);
