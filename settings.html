@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإعدادات والتصدير - نظام إدارة الجداول الدراسية الذكي</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <h1>نظام إدارة الجداول الدراسية الذكي</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html"><i class="fas fa-home"></i> الرئيسية</a></li>
+                <li><a href="data-entry.html"><i class="fas fa-database"></i> إدخال البيانات</a></li>
+                <li><a href="schedule-view.html"><i class="fas fa-calendar-alt"></i> عرض الجداول</a></li>
+                <li><a href="reports.html"><i class="fas fa-chart-bar"></i> التقارير والإحصائيات</a></li>
+                <li><a href="professor-schedules.html"><i class="fas fa-user-tie"></i> جداول الدكاترة</a></li>
+                <li><a href="settings.html" class="active"><i class="fas fa-cog"></i> الإعدادات والتصدير</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="settings" class="active-section">
+            <h2>الإعدادات والتصدير</h2>
+
+            <div class="form-container">
+                <h3>إدارة الفترات الزمنية</h3>
+                <form id="time-slots-form">
+                    <div class="form-group">
+                        <label for="custom-time-slots">الفترات الزمنية (كل فترة في سطر جديد، مثال: 08:00-09:40):</label>
+                        <textarea id="custom-time-slots" rows="5" placeholder="أدخل كل فترة زمنية في سطر جديد"></textarea>
+                    </div>
+                    <button type="submit"><i class="fas fa-sync-alt"></i> تحديث الفترات الزمنية</button>
+                </form>
+            </div>
+
+            <div class="form-container">
+                <h3>إدارة الفصول الدراسية</h3>
+                <form id="academic-period-form">
+                    <div class="form-group">
+                        <label for="current-academic-year">السنة الأكاديمية الحالية:</label>
+                        <input type="number" id="current-academic-year" name="currentAcademicYear" value="2024">
+                    </div>
+                    <div class="form-group">
+                        <label for="current-academic-semester">الفصل الدراسي الحالي:</label>
+                        <input type="text" id="current-academic-semester" name="currentAcademicSemester" value="الأول">
+                    </div>
+                    <button type="submit"><i class="fas fa-save"></i> حفظ الفترة الأكاديمية</button>
+                </form>
+            </div>
+
+
+            <p>اختر صيغة التصدير للجدول الحالي:</p>
+            <button id="export-pdf"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
+            <button id="export-excel"><i class="fas fa-file-excel"></i> تصدير Excel (ملف .xlsx)</button>
+            <button id="export-image"><i class="fas fa-image"></i> تصدير صورة</button>
+            <p style="margin-top: 20px; font-style: italic;">ملاحظة: تصدير PDF والصورة يلتقط ما يظهر على الشاشة في قسم "عرض الجداول".</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 نظام إدارة الجداول الدراسية الذكي. جميع الحقوق محفوظة.</p>
+    </footer>
+
+    <script type="module" src="js/constants.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/dataManager.js"></script>
+    <script type="module" src="js/scheduler.js"></script>
+    <script type="module" src="js/uiManager.js"></script>
+    <script type="module">
+        // كود تهيئة خاص بهذه الصفحة (settings)
+        import { initializeAppPage } from './main.js';
+        initializeAppPage('settings'); // تمرير معرف القسم الحالي
+    </script>
+</body>
+</html>
