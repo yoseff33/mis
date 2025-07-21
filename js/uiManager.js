@@ -5,57 +5,57 @@ import { getProfessors, getRooms, getCourses, getCurrentSchedule, setCurrentSche
 import { parseTimeRange, toMinutes, showAlert, setAlertDiv, isTimeConflict, calculateTimeSlotsMinutes } from './utils.js';
 import { checkConflicts, validateFullSchedule, evaluateSchedule, suggestAlternativeTimes } from './scheduler.js';
 
-// DOM Elements
-const mainContent = document.querySelector('main');
-const navLinks = document.querySelectorAll('nav ul li a');
-const scheduleGrid = document.getElementById('schedule-grid');
-const conflictAlertsDiv = document.getElementById('conflict-alerts');
+// DOM Elements - يجب تصديرها لتكون متاحة في main.js
+export const mainContent = document.querySelector('main');
+export const navLinks = document.querySelectorAll('nav ul li a');
+export const scheduleGrid = document.getElementById('schedule-grid');
+export const conflictAlertsDiv = document.getElementById('conflict-alerts');
 
-const professorForm = document.getElementById('professor-form');
-const roomForm = document.getElementById('room-form');
-const courseForm = document.getElementById('course-form');
+export const professorForm = document.getElementById('professor-form');
+export const roomForm = document.getElementById('room-form');
+export const courseForm = document.getElementById('course-form');
 
-const professorListDiv = document.getElementById('professor-list');
-const roomListDiv = document.getElementById('room-list');
-const courseListDiv = document.getElementById('course-list');
+export const professorListDiv = document.getElementById('professor-list');
+export const roomListDiv = document.getElementById('room-list');
+export const courseListDiv = document.getElementById('course-list');
 
-const uploadProfessorsInput = document.getElementById('upload-professors');
-const uploadRoomsInput = document.getElementById('upload-rooms');
-const uploadCoursesInput = document.getElementById('upload-courses');
+export const uploadProfessorsInput = document.getElementById('upload-professors');
+export const uploadRoomsInput = document.getElementById('upload-rooms');
+export const uploadCoursesInput = document.getElementById('upload-courses');
 
-const generateScheduleBtn = document.getElementById('generate-schedule');
-const saveCurrentScheduleBtn = document.getElementById('save-current-schedule');
-const loadSavedSchedulesBtn = document.getElementById('load-saved-schedules');
-const fixAllConflictsBtn = document.getElementById('fix-all-conflicts-btn');
+export const generateScheduleBtn = document.getElementById('generate-schedule');
+export const saveCurrentScheduleBtn = document.getElementById('save-current-schedule');
+export const loadSavedSchedulesBtn = document.getElementById('load-saved-schedules');
+export const fixAllConflictsBtn = document.getElementById('fix-all-conflicts-btn'); // زر جديد
 
-const reportsSection = document.getElementById('reports');
-const professorSchedulesSection = document.getElementById('professor-schedules');
+export const reportsSection = document.getElementById('reports');
+export const professorSchedulesSection = document.getElementById('professor-schedules');
 
-const exportPdfBtn = document.getElementById('export-pdf');
-const exportExcelBtn = document.getElementById('export-excel');
-const exportImageBtn = document.getElementById('export-image');
+export const exportPdfBtn = document.getElementById('export-pdf');
+export const exportExcelBtn = document.getElementById('export-excel');
+export const exportImageBtn = document.getElementById('export-image');
 
 // Modal Elements
-const editAppointmentModal = document.getElementById('edit-appointment-modal');
-const closeButton = editAppointmentModal ? editAppointmentModal.querySelector('.close-button') : null;
-const editAppointmentForm = document.getElementById('edit-appointment-form');
-const deleteApptBtn = document.getElementById('delete-appt-btn');
+export const editAppointmentModal = document.getElementById('edit-appointment-modal');
+export const closeButton = editAppointmentModal ? editAppointmentModal.querySelector('.close-button') : null;
+export const editAppointmentForm = document.getElementById('edit-appointment-form');
+export const deleteApptBtn = document.getElementById('delete-appt-btn');
 
-const editApptOriginalId = document.getElementById('edit-appt-original-id');
-const editApptCourseName = document.getElementById('edit-appt-course-name');
-const editApptProfessorId = document.getElementById('edit-appt-professor-id');
-const editApptRoomId = document.getElementById('edit-appt-room-id');
-const editApptDay = document.getElementById('edit-appt-day');
-const editApptTimeRange = document.getElementById('edit-appt-time-range');
-const editApptNotes = document.getElementById('edit-appt-notes');
+export const editApptOriginalId = document.getElementById('edit-appt-original-id');
+export const editApptCourseName = document.getElementById('edit-appt-course-name');
+export const editApptProfessorId = document.getElementById('edit-appt-professor-id');
+export const editApptRoomId = document.getElementById('edit-appt-room-id');
+export const editApptDay = document.getElementById('edit-appt-day');
+export const editApptTimeRange = document.getElementById('edit-appt-time-range');
+export const editApptNotes = document.getElementById('edit-appt-notes');
 
 export const globalSearchInput = document.getElementById('global-search');
 
 // عناصر الـ datalist للاقتراحات الذكية
-const profNamesSuggestions = document.getElementById('prof-names-suggestions');
-const roomNamesSuggestions = document.getElementById('room-names-suggestions');
-const courseNamesSuggestions = document.getElementById('course-names-suggestions');
-const departmentSuggestions = document.getElementById('department-suggestions');
+export const profNamesSuggestions = document.getElementById('prof-names-suggestions');
+export const roomNamesSuggestions = document.getElementById('room-names-suggestions');
+export const courseNamesSuggestions = document.getElementById('course-names-suggestions');
+export const departmentSuggestions = document.getElementById('department-suggestions');
 
 // عناصر الفترات الزمنية المخصصة
 export const customTimeSlotsTextArea = document.getElementById('custom-time-slots');
@@ -429,6 +429,7 @@ export const addDragStartListeners = () => {
             draggedAppointmentId = null;
             document.querySelectorAll('.schedule-cell.drag-over-ok, .schedule-cell.drag-over-conflict').forEach(cell => {
                 cell.classList.remove('drag-over-ok', 'drag-over-conflict');
+                cell.removeAttribute('title'); // إزالة تلميح الأداة
             });
         });
     });
@@ -453,26 +454,27 @@ export const handleDragOver = (e) => {
 
     document.querySelectorAll('.schedule-cell.drag-over-ok, .schedule-cell.drag-over-conflict').forEach(cell => {
         cell.classList.remove('drag-over-ok', 'drag-over-conflict');
+        cell.removeAttribute('title'); // إزالة تلميح الأداة
     });
 
     if (conflicts.length === 0) {
         targetCell.classList.add('drag-over-ok');
     } else {
         targetCell.classList.add('drag-over-conflict');
-        targetCell.title = conflicts.join('\n'); // عرض سبب التعارض في تلميح الأداة
+        targetCell.title = conflicts.join('\n');
     }
 };
 
 export const handleDragLeave = (e) => {
     e.currentTarget.classList.remove('drag-over-ok', 'drag-over-conflict');
-    e.currentTarget.removeAttribute('title'); // إزالة تلميح الأداة
+    e.currentTarget.removeAttribute('title');
 };
 
 export const handleDrop = (e) => {
     e.preventDefault();
     const targetCell = e.currentTarget;
     targetCell.classList.remove('drag-over-ok', 'drag-over-conflict');
-    targetCell.removeAttribute('title'); // إزالة تلميح الأداة عند الإفلات
+    targetCell.removeAttribute('title');
 
     if (draggedItem && draggedAppointmentId) {
         const newDay = targetCell.dataset.day;
@@ -516,8 +518,6 @@ export const handleDrop = (e) => {
 export const displayScheduleConflicts = () => {
     const currentScheduleData = getCurrentSchedule();
     const conflicts = validateFullSchedule(currentScheduleData);
-    // setAlertDiv(conflictAlertsDiv) تم استدعاؤها في main.js
-    // showAlert, setAlertDiv
     if (!conflictAlertsDiv) {
         console.error("Conflict alerts div not found!");
         return;
