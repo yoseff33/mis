@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض الجداول - نظام إدارة الجداول الدراسية الذكي</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <h1>نظام إدارة الجداول الدراسية الذكي</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html"><i class="fas fa-home"></i> الرئيسية</a></li>
+                <li><a href="data-entry.html"><i class="fas fa-database"></i> إدخال البيانات</a></li>
+                <li><a href="schedule-view.html" class="active"><i class="fas fa-calendar-alt"></i> عرض الجداول</a></li>
+                <li><a href="reports.html"><i class="fas fa-chart-bar"></i> التقارير والإحصائيات</a></li>
+                <li><a href="professor-schedules.html"><i class="fas fa-user-tie"></i> جداول الدكاترة</a></li>
+                <li><a href="settings.html"><i class="fas fa-cog"></i> الإعدادات والتصدير</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="schedule-view" class="active-section">
+            <h2>عرض وتعديل الجداول</h2>
+            <div class="schedule-controls">
+                <button id="generate-schedule"><i class="fas fa-magic"></i> توليد الجدول تلقائياً</button>
+                <button id="optimize-schedule-btn"><i class="fas fa-arrows-alt-h"></i> تحسين الجدول (تقليل الفجوات)</button>
+                <button id="fix-all-conflicts-btn" class="delete-btn"><i class="fas fa-wrench"></i> إصلاح جميع التعارضات</button>
+                <button id="save-current-schedule"><i class="fas fa-save"></i> حفظ الجدول الحالي كنسخة</button>
+                <button id="load-saved-schedules"><i class="fas fa-folder-open"></i> تحميل جدول محفوظ</button>
+            </div>
+            <div id="conflict-alerts" class="alert"></div>
+            <div id="schedule-grid"></div>
+
+            <div id="edit-appointment-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-button">&times;</span>
+                    <h3>تعديل الموعد</h3>
+                    <form id="edit-appointment-form">
+                        <input type="hidden" id="edit-appt-original-id">
+                        <div class="form-group">
+                            <label for="edit-appt-course-name">المادة:</label>
+                            <input type="text" id="edit-appt-course-name" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-professor-id">الدكتور:</label>
+                            <select id="edit-appt-professor-id" name="professorId" required>
+                                </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-room-id">القاعة/المعمل:</label>
+                            <select id="edit-appt-room-id" name="roomId" required>
+                                </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-day">اليوم:</label>
+                            <select id="edit-appt-day" name="day" required>
+                                <option value="الأحد">الأحد</option>
+                                <option value="الاثنين">الاثنين</option>
+                                <option value="الثلاثاء">الثلاثاء</option>
+                                <option value="الأربعاء">الأربعاء</option>
+                                <option value="الخميس">الخميس</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-time-range">الوقت:</label>
+                            <select id="edit-appt-time-range" name="timeRange" required>
+                                </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-notes">ملاحظات:</label>
+                            <textarea id="edit-appt-notes" name="notes" rows="2"></textarea>
+                        </div>
+                        <button type="submit"><i class="fas fa-save"></i> حفظ التعديلات</button>
+                        <button type="button" id="delete-appt-btn" class="delete-btn" style="margin-right: 10px;"><i class="fas fa-trash-alt"></i> حذف الموعد</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 نظام إدارة الجداول الدراسية الذكي. جميع الحقوق محفوظة.</p>
+    </footer>
+
+    <script type="module" src="js/constants.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/dataManager.js"></script>
+    <script type="module" src="js/scheduler.js"></script>
+    <script type="module" src="js/uiManager.js"></script>
+    <script type="module">
+        // كود تهيئة خاص بهذه الصفحة (schedule-view)
+        import { initializeAppPage } from './main.js';
+        initializeAppPage('schedule-view'); // تمرير معرف القسم الحالي
+    </script>
+</body>
+</html>
