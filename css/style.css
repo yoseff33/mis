@@ -212,7 +212,7 @@ button.edit-btn:hover {
 .form-group input[type="file"],
 .form-group select,
 .form-group textarea,
-#global-search { /* إضافة حقل البحث هنا */
+#global-search {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
@@ -228,7 +228,7 @@ button.edit-btn:hover {
 .form-group input[type="number"]:focus,
 .form-group select:focus,
 .form-group textarea:focus,
-#global-search:focus { /* إضافة حقل البحث هنا */
+#global-search:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2);
     outline: none;
@@ -303,6 +303,19 @@ button.edit-btn:hover {
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
+.schedule-cell.drag-over-ok { /* مؤشر للإفلات الصحيح */
+    background-color: var(--success-light);
+    border: 2px solid var(--success-color);
+    box-shadow: inset 0 0 8px rgba(76, 175, 80, 0.5);
+}
+
+.schedule-cell.drag-over-conflict { /* مؤشر للتعارض عند الإفلات */
+    background-color: var(--error-light);
+    border: 2px solid var(--error-color);
+    box-shadow: inset 0 0 8px rgba(244, 67, 54, 0.5);
+}
+
+
 .schedule-header {
     background-color: var(--secondary-color);
     color: var(--text-light);
@@ -365,7 +378,7 @@ button.edit-btn:hover {
     z-index: 10; /* Ensure dragged item is on top */
 }
 
-.schedule-cell.drag-over {
+.schedule-cell.drag-over { /* هذا الكلاس لم يعد مستخدماً بنفس الطريقة مع drag-over-ok/conflict */
     background-color: var(--info-light);
     border-color: var(--info-color);
     box-shadow: inset 0 0 10px var(--info-color);
@@ -725,7 +738,7 @@ footer {
         margin-bottom: 5px;
     }
 
-    .form-group input, .form-group select, .form-group textarea, #global-search { /* إضافة حقل البحث هنا */
+    .form-group input, .form-group select, .form-group textarea, #global-search {
         padding: 10px;
         font-size: 0.95rem;
     }
