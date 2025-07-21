@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الجداول الدراسية الذكي</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script> </head>
+<body>
+    <header>
+        <h1>نظام إدارة الجداول الدراسية الذكي</h1>
+        <nav>
+            <ul>
+                <li><a href="#data-entry" data-section="data-entry">إدخال البيانات</a></li>
+                <li><a href="#schedule-view" data-section="schedule-view">عرض الجداول</a></li>
+                <li><a href="#reports" data-section="reports">التقارير والإحصائيات</a></li>
+                <li><a href="#professor-schedules" data-section="professor-schedules">جداول الدكاترة</a></li>
+                <li><a href="#settings" data-section="settings">الإعدادات والتصدير</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="data-entry" class="active-section">
+            <h2>إدارة وإدخال البيانات</h2>
+
+            <div class="form-container">
+                <h3>إضافة دكتور جديد</h3>
+                <form id="professor-form">
+                    <div class="form-group">
+                        <label for="prof-name">اسم الدكتور:</label>
+                        <input type="text" id="prof-name" name="profName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="prof-available-times">الأوقات المتاحة (مثال: الأحد:8:00-10:00, الاثنين:10:00-12:00):</label>
+                        <textarea id="prof-available-times" name="profAvailableTimes" rows="2" placeholder="أدخل الأيام والأوقات مفصولة بفواصل"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="prof-priority">الأولوية (أقل رقم = أولوية أعلى):</label>
+                        <input type="number" id="prof-priority" name="profPriority" value="0">
+                    </div>
+                    <div class="form-group">
+                        <input type="checkbox" id="prof-no-friday" name="profNoFriday">
+                        <label for="prof-no-friday">لا يفضل التدريس يوم الجمعة</label>
+                    </div>
+                    <button type="submit">إضافة دكتور</button>
+                </form>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="upload-professors">رفع ملف CSV/Excel للدكاترة (اختياري):</label>
+                    <input type="file" id="upload-professors" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                </div>
+            </div>
+
+            <div id="professor-list" class="data-list"></div>
+
+            <div class="form-container">
+                <h3>إضافة قاعة/معمل جديد</h3>
+                <form id="room-form">
+                    <div class="form-group">
+                        <label for="room-name">اسم القاعة/المعمل:</label>
+                        <input type="text" id="room-name" name="roomName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="room-type">النوع:</label>
+                        <select id="room-type" name="roomType" required>
+                            <option value="lecture">قاعة محاضرات</option>
+                            <option value="lab">معمل</option>
+                        </select>
+                    </div>
+                     <div class="form-group">
+                        <label for="room-location-group">مجموعة الموقع (مثال: مبنى أ، مبنى ب):</label>
+                        <input type="text" id="room-location-group" name="roomLocationGroup" placeholder="لتحسين التوزيع الجغرافي">
+                    </div>
+                    <div class="form-group">
+                        <label for="room-available-times">الأوقات المتاحة (مثال: الأحد:8:00-18:00):</label>
+                        <textarea id="room-available-times" name="roomAvailableTimes" rows="2" placeholder="أدخل الأيام والأوقات مفصولة بفواصل"></textarea>
+                    </div>
+                    <button type="submit">إضافة قاعة/معمل</button>
+                </form>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="upload-rooms">رفع ملف CSV/Excel للقاعات (اختياري):</label>
+                    <input type="file" id="upload-rooms" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                </div>
+            </div>
+
+            <div id="room-list" class="data-list"></div>
+
+            <div class="form-container">
+                <h3>إضافة مادة جديدة</h3>
+                <form id="course-form">
+                    <div class="form-group">
+                        <label for="course-name">اسم المادة:</label>
+                        <input type="text" id="course-name" name="courseName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="course-professor-id">الدكتور المسؤول:</label>
+                        <select id="course-professor-id" name="courseProfessorId" required>
+                            <option value="">اختر دكتور</option>
+                            </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="course-hours">عدد الساعات النظرية:</label>
+                        <input type="number" id="course-hours" name="courseHours" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="course-lab-hours">عدد الساعات العملية (معمل):</label>
+                        <input type="number" id="course-lab-hours" name="courseLabHours" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="course-preferred-times">أوقات مفضلة (اختياري، مثال: الأحد:8:00-9:40):</label>
+                        <textarea id="course-preferred-times" name="coursePreferredTimes" rows="2" placeholder="أدخل الأيام والأوقات مفصولة بفواصل"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="course-notes">ملاحظات على المادة (اختياري):</label>
+                        <textarea id="course-notes" name="courseNotes" rows="2"></textarea>
+                    </div>
+                    <button type="submit">إضافة مادة</button>
+                </form>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="upload-courses">رفع ملف CSV/Excel للمواد (اختياري):</label>
+                    <input type="file" id="upload-courses" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                </div>
+            </div>
+
+            <div id="course-list" class="data-list"></div>
+        </section>
+
+        <section id="schedule-view">
+            <h2>عرض وتعديل الجداول</h2>
+            <div class="schedule-controls">
+                <button id="generate-schedule">توليد الجدول تلقائياً</button>
+                <button id="save-current-schedule">حفظ الجدول الحالي كنسخة</button>
+                <button id="load-saved-schedules">تحميل جدول محفوظ</button>
+            </div>
+            <div id="conflict-alerts" class="alert"></div>
+            <div id="schedule-grid"></div>
+
+            <div id="edit-appointment-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-button">&times;</span>
+                    <h3>تعديل الموعد</h3>
+                    <form id="edit-appointment-form">
+                        <input type="hidden" id="edit-appt-original-id">
+                        <div class="form-group">
+                            <label for="edit-appt-course-name">المادة:</label>
+                            <input type="text" id="edit-appt-course-name" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-professor-id">الدكتور:</label>
+                            <select id="edit-appt-professor-id" name="professorId" required>
+                                </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-room-id">القاعة/المعمل:</label>
+                            <select id="edit-appt-room-id" name="roomId" required>
+                                </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-day">اليوم:</label>
+                            <select id="edit-appt-day" name="day" required>
+                                <option value="الأحد">الأحد</option>
+                                <option value="الاثنين">الاثنين</option>
+                                <option value="الثلاثاء">الثلاثاء</option>
+                                <option value="الأربعاء">الأربعاء</option>
+                                <option value="الخميس">الخميس</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-time-range">الوقت:</label>
+                            <select id="edit-appt-time-range" name="timeRange" required>
+                                </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-appt-notes">ملاحظات:</label>
+                            <textarea id="edit-appt-notes" name="notes" rows="2"></textarea>
+                        </div>
+                        <button type="submit">حفظ التعديلات</button>
+                        <button type="button" id="delete-appt-btn" class="delete-btn" style="margin-right: 10px;">حذف الموعد</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section id="reports">
+            </section>
+
+        <section id="professor-schedules">
+            </section>
+
+        <section id="settings">
+            <h2>الإعدادات والتصدير</h2>
+            <p>اختر صيغة التصدير للجدول الحالي:</p>
+            <button id="export-pdf">تصدير PDF</button>
+            <button id="export-excel">تصدير Excel (ملف .xlsx)</button>
+            <button id="export-image">تصدير صورة</button>
+            <p style="margin-top: 20px; font-style: italic;">ملاحظة: تصدير PDF والصورة يلتقط ما يظهر على الشاشة في قسم "عرض الجداول".</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 نظام إدارة الجداول الدراسية الذكي</p>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
