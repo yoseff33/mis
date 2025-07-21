@@ -1,49 +1,51 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap');
 /* @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'); هذا السطر مكرر، يفضل إزالته لأنه موجود في index.html */
 
 :root {
-    /* Color Palette */
-    --primary-color: #3f51b5; /* Indigo - A deep, calming blue for primary actions/branding */
-    --primary-dark: #303f9f;
-    --primary-light: #c5cae9;
+    /* New Professional Color Palette */
+    --primary-color: #4A90E2; /* A vibrant, modern blue */
+    --primary-dark: #357ABD;
+    --primary-light: #C7E0FF;
 
-    --secondary-color: #009688; /* Teal - A vibrant, friendly green-blue for accents */
-    --secondary-dark: #00796b;
-    --secondary-light: #b2dfdb;
+    --secondary-color: #6D28D9; /* A deep, rich violet for accents */
+    --secondary-dark: #4C1D95;
+    --secondary-light: #DDD6FE;
 
-    --text-primary: #212121; /* Dark grey for main text */
-    --text-secondary: #757575; /* Medium grey for secondary text */
+    --text-primary: #333333; /* Darker grey for primary text */
+    --text-secondary: #6B7280; /* Medium grey for secondary text */
     --text-light: #ffffff; /* White for text on dark backgrounds */
 
-    --bg-light: #f5f5f5; /* Light grey for subtle backgrounds */
+    --bg-light: #F9FAFB; /* Very light grey for subtle backgrounds */
     --bg-white: #ffffff;
 
     /* Semantic Colors */
-    --success-color: #4CAF50;
-    --success-light: #e8f5e9;
-    --error-color: #f44336;
-    --error-light: #ffebee;
-    --warning-color: #ffc107;
-    --warning-light: #fff8e1;
-    --info-color: #2196F3;
-    --info-light: #e3f2fd;
+    --success-color: #10B981; /* Tailwind green */
+    --success-light: #D1FAE5;
+    --error-color: #EF4444; /* Tailwind red */
+    --error-light: #FEE2E2;
+    --warning-color: #F59E0B; /* Tailwind amber */
+    --warning-light: #FEF3C7;
+    --info-color: #3B82F6; /* Tailwind blue */
+    --info-light: #DBEAFE;
 
     /* Shadows */
-    --shadow-sm: rgba(0, 0, 0, 0.08) 0px 1px 3px 0px, rgba(0, 0, 0, 0.02) 0px 1px 2px 0px;
+    --shadow-sm: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
     --shadow-md: rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px -1px;
     --shadow-lg: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+    --shadow-xl: rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.04) 0px 10px 10px -5px;
 
     /* Borders */
-    --border-color: #e0e0e0;
-    --border-radius-sm: 4px;
-    --border-radius-md: 8px;
-    --border-radius-lg: 12px;
+    --border-color: #E5E7EB; /* Lighter border */
+    --border-radius-sm: 6px;
+    --border-radius-md: 10px;
+    --border-radius-lg: 16px;
 
     /* Spacing */
     --spacing-xs: 8px;
     --spacing-sm: 16px;
     --spacing-md: 24px;
     --spacing-lg: 32px;
+    --spacing-xl: 48px;
 }
 
 body {
@@ -54,7 +56,7 @@ body {
     color: var(--text-primary);
     direction: rtl; /* For Arabic language support */
     text-align: right;
-    line-height: 1.6;
+    line-height: 1.7; /* Slightly more spacious line-height */
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -65,13 +67,14 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--primary-dark);
     margin-top: 0;
     margin-bottom: 1.2rem;
-    font-weight: 600;
+    font-weight: 700; /* Bolder headings */
+    line-height: 1.3;
 }
 
-h1 { font-size: 2.8rem; }
-h2 { font-size: 2.2rem; border-bottom: 2px solid var(--primary-light); padding-bottom: 0.8rem; margin-bottom: 2rem; }
-h3 { font-size: 1.8rem; }
-p { margin-bottom: 1rem; color: var(--text-secondary); }
+h1 { font-size: 3rem; margin-bottom: 1.5rem; }
+h2 { font-size: 2.4rem; border-bottom: 2px solid var(--primary-light); padding-bottom: 1rem; margin-bottom: 2.5rem; color: var(--secondary-dark); }
+h3 { font-size: 1.9rem; margin-bottom: 1.2rem; }
+p { margin-bottom: 1.2rem; color: var(--text-secondary); }
 
 /* Header & Navigation */
 header {
@@ -79,7 +82,7 @@ header {
     color: var(--text-light);
     padding: var(--spacing-md) 0;
     text-align: center;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-xl); /* Stronger shadow for header */
     position: sticky;
     top: 0;
     z-index: 100;
@@ -87,10 +90,11 @@ header {
 
 header h1 {
     margin: 0;
-    font-size: 2.5rem;
+    font-size: 2.8rem;
     color: var(--text-light);
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.3); /* More pronounced text shadow */
     margin-bottom: var(--spacing-sm);
+    font-weight: 800;
 }
 
 nav ul {
@@ -107,35 +111,37 @@ nav ul li a {
     color: var(--text-light);
     text-decoration: none;
     font-weight: 600;
-    padding: 10px 20px;
+    padding: 12px 25px; /* Slightly larger padding */
     border-radius: var(--border-radius-md);
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    display: flex; /* For potential icon alignment */
+    display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px; /* More space for icon */
+    font-size: 1.05rem;
 }
 
 nav ul li a:hover,
 nav ul li a.active {
-    background-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-sm);
+    background-color: rgba(255, 255, 255, 0.25); /* Slightly more opaque hover */
+    transform: translateY(-4px); /* More pronounced lift */
+    box-shadow: var(--shadow-md);
 }
 
 /* Main Content Area */
 main {
-    padding: var(--spacing-lg);
-    max-width: 1400px;
-    margin: var(--spacing-lg) auto;
+    padding: var(--spacing-xl); /* More generous padding */
+    max-width: 1300px; /* Slightly narrower for focus */
+    margin: var(--spacing-xl) auto;
     background-color: var(--bg-white);
     border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-xl); /* Prominent shadow for main container */
+    border: 1px solid var(--border-color);
 }
 
 section {
-    display: none;
+    display: none; /* Keep for SPA compatibility if needed, but not for MPA navigation */
     padding: var(--spacing-md) 0;
-    animation: fadeIn 0.6s ease-out;
+    animation: fadeIn 0.8s ease-out; /* Slower fade-in */
 }
 
 section.active-section {
@@ -143,7 +149,7 @@ section.active-section {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(30px); } /* More pronounced starting point */
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -152,59 +158,60 @@ button {
     background-color: var(--primary-color);
     color: var(--text-light);
     border: none;
-    padding: 12px 25px;
+    padding: 14px 30px; /* Larger buttons */
     border-radius: var(--border-radius-md);
     cursor: pointer;
-    font-size: 1.05rem;
+    font-size: 1.1rem;
     font-weight: 600;
-    margin: 5px var(--spacing-xs) 5px 0;
+    margin: 8px var(--spacing-xs) 8px 0; /* More margin */
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md); /* Softer button shadow */
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     justify-content: center;
 }
 
 button:hover {
     background-color: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-3px); /* More pronounced lift */
+    box-shadow: var(--shadow-lg);
 }
 
 button.delete-btn {
     background-color: var(--error-color);
 }
 button.delete-btn:hover {
-    background-color: #d32f2f; /* Darker red */
+    background-color: #D32F2F;
 }
 
 button.edit-btn {
     background-color: var(--info-color);
 }
 button.edit-btn:hover {
-    background-color: #1976D2; /* Darker blue */
+    background-color: #3476D2;
 }
 
 /* Forms */
 .form-container {
     background-color: var(--bg-white);
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg); /* More padding */
+    border-radius: var(--border-radius-lg); /* Softer corners */
     border: 1px solid var(--border-color);
-    margin-bottom: var(--spacing-lg);
-    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-xl); /* More space below forms */
+    box-shadow: var(--shadow-md);
 }
 
 .form-group {
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-md); /* More space between form groups */
 }
 
 .form-group label {
     display: block;
     margin-bottom: var(--spacing-xs);
-    font-weight: 600;
+    font-weight: 700; /* Bolder labels */
     color: var(--text-primary);
+    font-size: 1.05rem;
 }
 
 .form-group input[type="text"],
@@ -214,11 +221,11 @@ button.edit-btn:hover {
 .form-group textarea,
 #global-search {
     width: 100%;
-    padding: 12px;
+    padding: 14px; /* Larger input fields */
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     box-sizing: border-box;
-    font-size: 1rem;
+    font-size: 1.05rem;
     color: var(--text-primary);
     background-color: var(--bg-light);
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -230,15 +237,21 @@ button.edit-btn:hover {
 .form-group textarea:focus,
 #global-search:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2);
+    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.3); /* More prominent focus ring */
     outline: none;
     background-color: var(--bg-white);
 }
 
 .form-group input[type="checkbox"] {
-    margin-left: var(--spacing-xs);
-    transform: scale(1.2);
+    margin-left: var(--spacing-sm); /* More space */
+    transform: scale(1.3); /* Larger checkbox */
     cursor: pointer;
+}
+
+/* Datalist styling (basic, browser handles most) */
+datalist {
+    font-family: 'Cairo', sans-serif;
+    font-size: 0.95rem;
 }
 
 /* Lists (Professors, Rooms, Courses) */
@@ -251,7 +264,7 @@ button.edit-btn:hover {
     background-color: var(--bg-white);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg); /* More padding */
     margin-bottom: var(--spacing-xs);
     display: flex;
     justify-content: space-between;
@@ -261,7 +274,7 @@ button.edit-btn:hover {
 }
 
 .data-list li:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px); /* More pronounced lift */
     box-shadow: var(--shadow-md);
 }
 
@@ -271,9 +284,9 @@ button.edit-btn:hover {
 }
 
 .data-list li button {
-    margin-left: var(--spacing-xs);
-    padding: 8px 15px;
-    font-size: 0.9rem;
+    margin-left: var(--spacing-sm); /* More space */
+    padding: 10px 20px; /* Larger buttons */
+    font-size: 0.95rem;
 }
 
 /* Schedule Grid */
@@ -282,18 +295,18 @@ button.edit-btn:hover {
     border: 1px solid var(--border-color);
     gap: 1px;
     background-color: var(--border-color);
-    margin-top: var(--spacing-lg);
-    border-radius: var(--border-radius-md);
+    margin-top: var(--spacing-xl); /* More space above grid */
+    border-radius: var(--border-radius-lg); /* Softer corners */
     overflow: hidden;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-xl); /* Prominent shadow */
 }
 
 .schedule-cell {
     background-color: var(--bg-white);
-    padding: var(--spacing-xs);
+    padding: var(--spacing-sm);
     text-align: center;
     border: 1px solid #f0f0f0;
-    min-height: 100px; /* Increased height for better content display */
+    min-height: 120px; /* Increased height */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -303,25 +316,25 @@ button.edit-btn:hover {
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.schedule-cell.drag-over-ok { /* مؤشر للإفلات الصحيح */
+.schedule-cell.drag-over-ok {
     background-color: var(--success-light);
-    border: 2px solid var(--success-color);
-    box-shadow: inset 0 0 8px rgba(76, 175, 80, 0.5);
+    border: 3px solid var(--success-color); /* Thicker border */
+    box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.6); /* Stronger glow */
 }
 
-.schedule-cell.drag-over-conflict { /* مؤشر للتعارض عند الإفلات */
+.schedule-cell.drag-over-conflict {
     background-color: var(--error-light);
-    border: 2px solid var(--error-color);
-    box-shadow: inset 0 0 8px rgba(244, 67, 54, 0.5);
+    border: 3px solid var(--error-color); /* Thicker border */
+    box-shadow: inset 0 0 12px rgba(239, 68, 68, 0.6); /* Stronger glow */
 }
 
 
 .schedule-header {
-    background-color: var(--secondary-color);
+    background-color: var(--secondary-dark); /* Darker secondary for headers */
     color: var(--text-light);
-    font-weight: 700;
-    font-size: 1.1rem;
-    padding: var(--spacing-sm) var(--spacing-xs);
+    font-weight: 800; /* Extra bold */
+    font-size: 1.2rem;
+    padding: var(--spacing-md) var(--spacing-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -330,96 +343,91 @@ button.edit-btn:hover {
 .course-item {
     background-color: var(--primary-color);
     color: var(--text-light);
-    padding: 8px;
-    margin: 4px 0;
+    padding: 10px; /* More padding */
+    margin: 5px 0; /* More margin */
     border-radius: var(--border-radius-sm);
     cursor: grab;
-    font-size: 0.9rem;
-    width: calc(100% - 8px);
+    font-size: 0.95rem;
+    width: calc(100% - 10px); /* Adjust width */
     box-sizing: border-box;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px; /* More space */
     box-shadow: var(--shadow-sm);
     text-align: center;
 }
 
 .course-item strong {
-    font-size: 1rem;
-    white-space: nowrap; /* Prevent course name from wrapping */
-    overflow: hidden;
-    text-overflow: ellipsis; /* Add ellipsis if too long */
+    font-size: 1.05rem;
+    font-weight: 700;
 }
 .course-item span {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.9); /* Slightly less transparent */
 }
 
-/* Color coding for different types or professors (example, needs JS to apply) */
+/* Color coding for different types or professors */
 .course-item.lecture { background-color: var(--primary-color); }
 .course-item.lab { background-color: var(--secondary-color); }
 /* Example for professor-specific colors, applied via JS */
-.course-item.prof-p1 { background-color: #FF5722; } /* Orange */
-.course-item.prof-p2 { background-color: #9C27B0; } /* Purple */
-.course-item.prof-p3 { background-color: #3F51B5; } /* Indigo (Primary) */
+.course-item.prof-p1 { background-color: #EF4444; } /* Red */
+.course-item.prof-p2 { background-color: #3B82F6; } /* Blue */
+.course-item.prof-p3 { background-color: #10B981; } /* Green */
+.course-item.prof-p4 { background-color: #F59E0B; } /* Amber */
 
 
 .course-item:hover {
     background-color: var(--primary-dark);
-    transform: translateY(-3px);
+    transform: translateY(-4px); /* More pronounced lift */
     box-shadow: var(--shadow-md);
 }
 
 .course-item.dragging {
-    opacity: 0.6;
-    transform: scale(1.02);
-    box-shadow: var(--shadow-lg);
-    z-index: 10; /* Ensure dragged item is on top */
-}
-
-.schedule-cell.drag-over { /* هذا الكلاس لم يعد مستخدماً بنفس الطريقة مع drag-over-ok/conflict */
-    background-color: var(--info-light);
-    border-color: var(--info-color);
-    box-shadow: inset 0 0 10px var(--info-color);
+    opacity: 0.7;
+    transform: scale(1.03);
+    box-shadow: var(--shadow-xl);
+    z-index: 10;
 }
 
 /* Conflict and Alerts */
 .conflict {
     background-color: var(--error-color) !important;
-    border: 2px solid #D32F2F !important;
-    animation: pulse-red 1.5s infinite alternate;
+    border: 3px solid #D32F2F !important;
+    animation: pulse-red 1.2s infinite alternate; /* Faster pulse */
 }
 
 @keyframes pulse-red {
-    0% { border-color: #D32F2F; box-shadow: 0 0 5px #D32F2F; }
-    100% { border-color: var(--error-color); box-shadow: 0 0 15px var(--error-color); }
+    0% { border-color: #D32F2F; box-shadow: 0 0 8px #D32F2F; }
+    100% { border-color: var(--error-color); box-shadow: 0 0 20px var(--error-color); }
 }
 
 #conflict-alerts {
-    padding: var(--spacing-sm) var(--spacing-md);
-    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-xl);
     border-radius: var(--border-radius-md);
     display: none;
     font-weight: 600;
-    box-shadow: var(--shadow-sm);
-    text-align: right; /* Ensure RTL */
+    box-shadow: var(--shadow-md);
+    text-align: right;
+    line-height: 1.5;
 }
 
 #conflict-alerts h4 {
-    color: inherit; /* Inherit color from parent */
+    color: inherit;
     margin-top: 0;
-    margin-bottom: var(--spacing-xs);
-    font-size: 1.1rem;
+    margin-bottom: var(--spacing-sm);
+    font-size: 1.2rem;
+    font-weight: 700;
 }
 
 #conflict-alerts ul {
     list-style: disc;
-    padding-right: var(--spacing-md); /* Adjust for RTL bullet points */
+    padding-right: var(--spacing-lg);
     margin-top: var(--spacing-xs);
     margin-bottom: 0;
     font-weight: 400;
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 #conflict-alerts.alert-danger {
@@ -451,68 +459,68 @@ button.edit-btn:hover {
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: var(--spacing-md);
-    box-shadow: var(--shadow-md);
+    margin-top: var(--spacing-xl);
+    box-shadow: var(--shadow-lg); /* More prominent table shadow */
     border-radius: var(--border-radius-md);
     overflow: hidden;
 }
 
 table th, table td {
     border: 1px solid var(--border-color);
-    padding: 12px 15px;
+    padding: 14px 18px; /* More padding */
     text-align: right;
-    font-size: 0.95rem;
-}
-
-table th {
-    background-color: var(--secondary-color);
-    color: var(--text-light);
-    font-weight: 600;
     font-size: 1rem;
 }
 
+table th {
+    background-color: var(--primary-dark); /* Primary dark for table headers */
+    color: var(--text-light);
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
 table tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: #F3F4F6; /* Lighter alternating row */
 }
 
 table tr:hover {
-    background-color: #f0f0f0;
+    background-color: #E5E7EB; /* Subtle hover effect */
 }
 
 /* Professor Schedule Card */
 .professor-schedule-card {
     background-color: var(--bg-white);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-    box-shadow: var(--shadow-md);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
 }
 
 .professor-schedule-card h3 {
     color: var(--primary-color);
-    border-bottom: 1px dashed var(--border-color);
-    padding-bottom: var(--spacing-xs);
+    border-bottom: 2px dashed var(--border-color); /* Thicker dashed border */
+    padding-bottom: var(--spacing-sm);
     margin-bottom: var(--spacing-md);
 }
 
 .professor-schedule-card button {
-    margin-top: var(--spacing-sm);
+    margin-top: var(--spacing-md);
 }
 
 /* Reports Specific Styles */
 .evaluation-summary {
     background-color: var(--success-light);
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
     border-radius: var(--border-radius-md);
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-xl); /* More space */
     border: 1px solid var(--success-color);
     text-align: center;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
 }
 
 .evaluation-summary p {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: bold;
     margin: 0;
     color: var(--text-primary);
@@ -520,14 +528,15 @@ table tr:hover {
 
 .score-badge {
     display: inline-block;
-    padding: 5px 12px;
-    border-radius: 20px;
+    padding: 6px 14px;
+    border-radius: 24px;
     color: var(--text-light);
-    font-size: 1.2rem;
-    font-weight: 700;
+    font-size: 1.3rem;
+    font-weight: 800;
     margin-right: var(--spacing-xs);
-    min-width: 60px; /* Ensure badge size consistency */
+    min-width: 65px;
     text-align: center;
+    box-shadow: var(--shadow-sm);
 }
 
 .score-badge.high-score { background-color: var(--success-color); }
@@ -536,58 +545,61 @@ table tr:hover {
 
 .evaluation-details-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Adjust min-width */
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
 }
 
 .evaluation-item {
     background-color: var(--bg-white);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
-    padding: var(--spacing-sm);
+    padding: var(--spacing-md);
     box-shadow: var(--shadow-sm);
 }
 
 .evaluation-item strong {
     color: var(--primary-dark);
+    font-size: 1.05rem;
 }
 
 .chart-note {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
-    margin-top: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
     font-style: italic;
     text-align: center;
 }
 
 .chart-container {
-    margin-bottom: var(--spacing-lg);
-    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
     background-color: var(--bg-white);
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
 }
 .chart-container h3 {
     text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing-md);
 }
 .chart-container canvas {
-    max-height: 400px;
-    width: 100% !important; /* Override Chart.js inline width */
-    height: auto !important; /* Override Chart.js inline height */
+    max-height: 450px; /* Slightly taller charts */
+    width: 100% !important;
+    height: auto !important;
 }
 
 /* Footer */
 footer {
     text-align: center;
     padding: var(--spacing-md);
-    margin-top: var(--spacing-lg);
-    background-color: var(--dark-bg);
-    color: rgba(255, 255, 255, 0.8);
+    margin-top: var(--spacing-xl);
+    background-color: var(--primary-dark); /* Darker primary for footer */
+    color: rgba(255, 255, 255, 0.9);
     border-top: 1px solid #444;
-    font-size: 0.9rem;
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    font-size: 0.95rem;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.15); /* More pronounced shadow */
 }
 
 /* Modal Styles */
@@ -600,20 +612,20 @@ footer {
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0,0,0,0.6); /* Darker overlay */
-    padding-top: 60px;
-    animation: fadeInModal 0.3s ease-out forwards; /* Use forwards to keep state */
+    background-color: rgba(0,0,0,0.7); /* Darker overlay */
+    padding-top: 80px; /* More space from top */
+    animation: fadeInModal 0.3s ease-out forwards;
 }
 
 .modal-content {
     background-color: var(--bg-white);
-    margin: 5% auto;
-    padding: var(--spacing-lg);
+    margin: 4% auto; /* Slightly higher */
+    padding: var(--spacing-xl); /* More generous padding */
     border: 1px solid var(--border-color);
     width: 90%;
-    max-width: 650px;
+    max-width: 700px; /* Slightly wider modal */
     border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-xl);
     position: relative;
     animation: slideInModal 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
@@ -624,16 +636,16 @@ footer {
 }
 
 @keyframes slideInModal {
-    from { transform: translateY(-50px) scale(0.9); opacity: 0; }
+    from { transform: translateY(-70px) scale(0.9); opacity: 0; } /* More pronounced slide */
     to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .close-button {
     color: var(--text-secondary);
     position: absolute;
-    top: var(--spacing-sm);
-    left: var(--spacing-sm); /* Adjusted for RTL */
-    font-size: 2rem;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    font-size: 2.2rem;
     font-weight: bold;
     cursor: pointer;
     transition: color 0.3s ease;
@@ -647,22 +659,68 @@ footer {
 .modal-content h3 {
     text-align: center;
     color: var(--primary-dark);
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-lg); /* More space */
     border-bottom: 2px solid var(--primary-light);
     padding-bottom: var(--spacing-xs);
 }
 
 .modal-content .form-group label {
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
 }
 
 .modal-content button {
-    margin-top: var(--spacing-md);
-    margin-left: 0; /* Reset default margin */
-    margin-right: var(--spacing-xs); /* Add margin between buttons */
-    padding: 10px 20px; /* Slightly smaller buttons for modal */
-    font-size: 1rem;
+    margin-top: var(--spacing-lg); /* More space */
+    margin-left: 0;
+    margin-right: var(--spacing-sm); /* More space between buttons */
+    padding: 12px 25px;
+    font-size: 1.05rem;
+}
+
+/* Dashboard Grid for Home Page */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+    text-align: center;
+}
+
+.dashboard-card {
+    background-color: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.dashboard-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl);
+}
+
+.dashboard-card i {
+    color: var(--primary-color);
+    font-size: 4rem; /* Larger icons */
+    margin-bottom: var(--spacing-xs);
+}
+
+.dashboard-card h3 {
+    font-size: 1.5rem;
+    color: var(--primary-dark);
+    margin-bottom: var(--spacing-xs);
+}
+
+.dashboard-card p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
 }
 
 
@@ -678,21 +736,33 @@ footer {
     }
 
     nav ul li a {
-        padding: 8px 15px;
-        font-size: 0.95rem;
-    }
-
-    h1 { font-size: 2.2rem; }
-    h2 { font-size: 1.8rem; }
-    h3 { font-size: 1.5rem; }
-
-    button {
         padding: 10px 20px;
         font-size: 0.95rem;
+        gap: 6px;
+    }
+
+    h1 { font-size: 2.5rem; }
+    h2 { font-size: 2rem; padding-bottom: 0.8rem; margin-bottom: 2rem; }
+    h3 { font-size: 1.6rem; }
+
+    button {
+        padding: 12px 25px;
+        font-size: 1rem;
+        gap: 8px;
     }
 
     .evaluation-details-grid {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .dashboard-grid {
+        gap: var(--spacing-md);
+    }
+    .dashboard-card {
+        padding: var(--spacing-md);
+    }
+    .dashboard-card i {
+        font-size: 3rem;
     }
 }
 
@@ -702,7 +772,7 @@ footer {
     }
 
     header h1 {
-        font-size: 2rem;
+        font-size: 2.2rem;
         margin-bottom: var(--spacing-xs);
     }
 
@@ -712,8 +782,9 @@ footer {
         align-items: center;
     }
     nav ul li a {
-        width: 80%; /* Make navigation links wider on small screens */
+        width: 90%;
         justify-content: center;
+        padding: 10px 15px;
     }
 
     main {
@@ -726,16 +797,17 @@ footer {
     }
 
     h2 {
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         margin-bottom: var(--spacing-md);
     }
 
     .form-container {
-        padding: var(--spacing-sm);
+        padding: var(--spacing-md);
     }
 
     .form-group label {
         margin-bottom: 5px;
+        font-size: 1rem;
     }
 
     .form-group input, .form-group select, .form-group textarea, #global-search {
@@ -747,60 +819,67 @@ footer {
         flex-direction: column;
         align-items: flex-start;
         gap: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-md);
     }
 
     .data-list li button {
         width: 100%;
         margin-top: var(--spacing-xs);
         margin-left: 0;
+        padding: 8px 15px;
     }
 
     /* Adjust schedule grid for smaller screens (Vertical Layout) */
     #schedule-grid {
-        display: block; /* Change to block to allow vertical scrolling */
+        display: block;
         border: none;
         background-color: transparent;
-        overflow-x: auto; /* Allow horizontal scrolling if table is too wide */
-        white-space: nowrap; /* Prevent day headers from wrapping */
+        overflow-x: auto;
+        white-space: nowrap;
     }
 
     .schedule-header, .schedule-cell {
-        display: inline-block; /* Display as inline-block to allow side-by-side on one line */
+        display: inline-block;
         vertical-align: top;
-        width: 180px; /* Fixed width for each cell/header column */
-        min-width: 180px;
-        height: 120px; /* Fixed height for better consistency */
-        min-height: 120px;
+        width: 160px; /* Slightly narrower */
+        min-width: 160px;
+        height: 100px; /* Slightly shorter */
+        min-height: 100px;
         border: 1px solid var(--border-color);
         margin: 2px;
-        white-space: normal; /* Allow content to wrap inside cell */
-        box-shadow: var(--shadow-sm); /* Add subtle shadow */
+        white-space: normal;
+        box-shadow: var(--shadow-sm);
         border-radius: var(--border-radius-sm);
     }
 
     .schedule-header {
-        background-color: var(--secondary-color);
-        color: white;
-        font-size: 1rem;
-        font-weight: 600;
+        font-size: 0.95rem;
     }
 
     .course-item {
-        font-size: 0.8rem;
-        padding: 6px;
+        font-size: 0.75rem;
+        padding: 5px;
+        width: calc(100% - 10px);
     }
+    .course-item strong { font-size: 0.9rem; }
+    .course-item span { font-size: 0.7rem; }
 
     table th, table td {
-        padding: 8px 10px;
+        padding: 10px 12px;
         font-size: 0.9rem;
     }
 
     .professor-schedule-card {
-        padding: var(--spacing-sm);
+        padding: var(--spacing-md);
     }
 
     .modal-content {
         width: 95%;
         margin: 2% auto;
-        padding: var(--spacing-sm);
+        padding: var(--spacing-md);
     }
+    .modal-content button {
+        padding: 10px 20px;
+        font-size: 1rem;
+    }
+}
