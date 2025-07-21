@@ -1,66 +1,96 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'); /* For icons */
 
 :root {
-    --primary-color: #4CAF50; /* أخضر زاهي */
-    --primary-dark: #388E3C;
-    --secondary-color: #607D8B; /* أزرق رمادي */
-    --accent-color: #FFC107; /* أصفر للتنبيهات */
-    --text-color: #333;
-    --light-bg: #f5f7fa; /* خلفية فاتحة ناعمة */
-    --dark-bg: #212121; /* خلفية داكنة للفوتر والهيدر */
-    --border-color: #e0e0e0;
-    --shadow-light: rgba(0, 0, 0, 0.1);
-    --shadow-medium: rgba(0, 0, 0, 0.2);
-    --error-color: #D32F2F; /* أحمر داكن للأخطاء */
+    /* Color Palette */
+    --primary-color: #3f51b5; /* Indigo - A deep, calming blue for primary actions/branding */
+    --primary-dark: #303f9f;
+    --primary-light: #c5cae9;
+
+    --secondary-color: #009688; /* Teal - A vibrant, friendly green-blue for accents */
+    --secondary-dark: #00796b;
+    --secondary-light: #b2dfdb;
+
+    --text-primary: #212121; /* Dark grey for main text */
+    --text-secondary: #757575; /* Medium grey for secondary text */
+    --text-light: #ffffff; /* White for text on dark backgrounds */
+
+    --bg-light: #f5f5f5; /* Light grey for subtle backgrounds */
+    --bg-white: #ffffff;
+
+    /* Semantic Colors */
     --success-color: #4CAF50;
-    --info-color: #2196F3; /* أزرق للمعلومات */
+    --success-light: #e8f5e9;
+    --error-color: #f44336;
+    --error-light: #ffebee;
+    --warning-color: #ffc107;
+    --warning-light: #fff8e1;
+    --info-color: #2196F3;
+    --info-light: #e3f2fd;
+
+    /* Shadows */
+    --shadow-sm: rgba(0, 0, 0, 0.08) 0px 1px 3px 0px, rgba(0, 0, 0, 0.02) 0px 1px 2px 0px;
+    --shadow-md: rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px -1px;
+    --shadow-lg: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+
+    /* Borders */
+    --border-color: #e0e0e0;
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+
+    /* Spacing */
+    --spacing-xs: 8px;
+    --spacing-sm: 16px;
+    --spacing-md: 24px;
+    --spacing-lg: 32px;
 }
 
 body {
     font-family: 'Cairo', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: var(--light-bg);
-    color: var(--text-color);
-    direction: rtl; /* لدعم اللغة العربية */
+    background-color: var(--bg-light);
+    color: var(--text-primary);
+    direction: rtl; /* For Arabic language support */
     text-align: right;
     line-height: 1.6;
     scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Typography & Base */
-h1, h2, h3 {
+/* Base Typography */
+h1, h2, h3, h4, h5, h6 {
     color: var(--primary-dark);
     margin-top: 0;
     margin-bottom: 1.2rem;
-}
-
-h2 {
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 10px;
-    margin-bottom: 25px;
-    font-size: 1.8rem;
     font-weight: 600;
 }
 
-p {
-    margin-bottom: 1rem;
-}
+h1 { font-size: 2.8rem; }
+h2 { font-size: 2.2rem; border-bottom: 2px solid var(--primary-light); padding-bottom: 0.8rem; margin-bottom: 2rem; }
+h3 { font-size: 1.8rem; }
+p { margin-bottom: 1rem; color: var(--text-secondary); }
 
 /* Header & Navigation */
 header {
-    background-color: var(--dark-bg);
-    color: white;
-    padding: 1.5rem 0;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: var(--text-light);
+    padding: var(--spacing-md) 0;
     text-align: center;
-    box-shadow: 0 4px 8px var(--shadow-light);
+    box-shadow: var(--shadow-lg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 header h1 {
     margin: 0;
     font-size: 2.5rem;
-    color: white;
-    margin-bottom: 15px;
+    color: var(--text-light);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+    margin-bottom: var(--spacing-sm);
 }
 
 nav ul {
@@ -70,40 +100,42 @@ nav ul {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: var(--spacing-sm);
 }
 
 nav ul li a {
-    color: white;
+    color: var(--text-light);
     text-decoration: none;
     font-weight: 600;
     padding: 10px 20px;
-    border-radius: 5px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    display: block;
+    border-radius: var(--border-radius-md);
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex; /* For potential icon alignment */
+    align-items: center;
+    gap: 5px;
 }
 
 nav ul li a:hover,
 nav ul li a.active {
-    background-color: var(--primary-color);
+    background-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-3px);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Main Content Area */
 main {
-    padding: 30px;
+    padding: var(--spacing-lg);
     max-width: 1400px;
-    margin: 30px auto;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 0 20px var(--shadow-light);
+    margin: var(--spacing-lg) auto;
+    background-color: var(--bg-white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
 }
 
 section {
-    display: none; /* يتم التحكم في عرضها بواسطة JS */
-    padding: 20px 0;
-    animation: fadeIn 0.5s ease-out;
+    display: none;
+    padding: var(--spacing-md) 0;
+    animation: fadeIn 0.6s ease-out;
 }
 
 section.active-section {
@@ -118,59 +150,61 @@ section.active-section {
 /* Buttons */
 button {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-light);
     border: none;
     padding: 12px 25px;
-    border-radius: 8px;
+    border-radius: var(--border-radius-md);
     cursor: pointer;
     font-size: 1.05rem;
     font-weight: 600;
-    margin: 5px 8px 5px 0;
+    margin: 5px var(--spacing-xs) 5px 0;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
 }
 
 button:hover {
     background-color: var(--primary-dark);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 button.delete-btn {
     background-color: var(--error-color);
 }
-
 button.delete-btn:hover {
-    background-color: #B71C1C;
+    background-color: #d32f2f; /* Darker red */
 }
 
 button.edit-btn {
     background-color: var(--info-color);
 }
-
 button.edit-btn:hover {
-    background-color: #1976D2;
+    background-color: #1976D2; /* Darker blue */
 }
 
 /* Forms */
 .form-container {
-    background-color: #fcfcfc;
-    padding: 25px;
-    border-radius: 10px;
+    background-color: var(--bg-white);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
     border: 1px solid var(--border-color);
-    margin-bottom: 30px;
-    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-sm);
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: var(--spacing-xs);
     font-weight: 600;
-    color: var(--primary-dark);
+    color: var(--text-primary);
 }
 
 .form-group input[type="text"],
@@ -181,9 +215,11 @@ button.edit-btn:hover {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--border-radius-sm);
     box-sizing: border-box;
     font-size: 1rem;
+    color: var(--text-primary);
+    background-color: var(--bg-light);
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -192,13 +228,15 @@ button.edit-btn:hover {
 .form-group select:focus,
 .form-group textarea:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+    box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2);
     outline: none;
+    background-color: var(--bg-white);
 }
 
 .form-group input[type="checkbox"] {
-    margin-left: 8px;
-    transform: scale(1.2); /* تكبير مربع الاختيار قليلاً */
+    margin-left: var(--spacing-xs);
+    transform: scale(1.2);
+    cursor: pointer;
 }
 
 /* Lists (Professors, Rooms, Courses) */
@@ -208,19 +246,30 @@ button.edit-btn:hover {
 }
 
 .data-list li {
-    background-color: #fff;
+    background-color: var(--bg-white);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px 20px;
-    margin-bottom: 12px;
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-xs);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.data-list li:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.data-list li div:first-child {
+    flex-grow: 1;
+    padding-left: var(--spacing-sm);
 }
 
 .data-list li button {
-    margin-right: 5px;
+    margin-left: var(--spacing-xs);
     padding: 8px 15px;
     font-size: 0.9rem;
 }
@@ -231,17 +280,18 @@ button.edit-btn:hover {
     border: 1px solid var(--border-color);
     gap: 1px;
     background-color: var(--border-color);
-    margin-top: 30px;
-    border-radius: 8px;
-    overflow: hidden; /* لمنع تجاوز المحتوى للحواف المدورة */
+    margin-top: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
 }
 
 .schedule-cell {
-    background-color: white;
-    padding: 10px;
+    background-color: var(--bg-white);
+    padding: var(--spacing-xs);
     text-align: center;
     border: 1px solid #f0f0f0;
-    min-height: 80px;
+    min-height: 100px; /* Increased height for better content display */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -253,50 +303,68 @@ button.edit-btn:hover {
 
 .schedule-header {
     background-color: var(--secondary-color);
-    color: white;
-    font-weight: bold;
+    color: var(--text-light);
+    font-weight: 700;
     font-size: 1.1rem;
-    padding: 15px 10px;
+    padding: var(--spacing-sm) var(--spacing-xs);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .course-item {
-    background-color: var(--info-color);
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--text-light);
     padding: 8px;
     margin: 4px 0;
-    border-radius: 6px;
+    border-radius: var(--border-radius-sm);
     cursor: grab;
     font-size: 0.9rem;
-    width: calc(100% - 8px); /* لترك مسافة داخل الخلية */
+    width: calc(100% - 8px);
     box-sizing: border-box;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
     gap: 3px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
 }
 
 .course-item strong {
     font-size: 1rem;
+    white-space: nowrap; /* Prevent course name from wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Add ellipsis if too long */
+}
+.course-item span {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
 }
 
+/* Color coding for different types or professors (example, needs JS to apply) */
+.course-item.lecture { background-color: var(--primary-color); }
+.course-item.lab { background-color: var(--secondary-color); }
+/* Example for professor-specific colors, applied via JS */
+.course-item.prof-p1 { background-color: #FF5722; } /* Orange */
+.course-item.prof-p2 { background-color: #9C27B0; } /* Purple */
+.course-item.prof-p3 { background-color: #3F51B5; } /* Indigo (Primary) */
+
+
 .course-item:hover {
-    background-color: #1565C0; /* أزرق أغمق عند التحويم */
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    background-color: var(--primary-dark);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
 }
 
 .course-item.dragging {
     opacity: 0.6;
     transform: scale(1.02);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-lg);
+    z-index: 10; /* Ensure dragged item is on top */
 }
 
 .schedule-cell.drag-over {
-    background-color: #e0f2f7; /* خلفية فاتحة عند السحب فوقها */
+    background-color: var(--info-light);
     border-color: var(--info-color);
     box-shadow: inset 0 0 10px var(--info-color);
 }
@@ -304,68 +372,86 @@ button.edit-btn:hover {
 /* Conflict and Alerts */
 .conflict {
     background-color: var(--error-color) !important;
-    border: 2px solid #B71C1C !important;
-    animation: pulse-red 1.5s infinite alternate; /* تأثير نبض */
+    border: 2px solid #D32F2F !important;
+    animation: pulse-red 1.5s infinite alternate;
 }
 
 @keyframes pulse-red {
-    0% { border-color: #B71C1C; box-shadow: 0 0 5px #B71C1C; }
+    0% { border-color: #D32F2F; box-shadow: 0 0 5px #D32F2F; }
     100% { border-color: var(--error-color); box-shadow: 0 0 15px var(--error-color); }
 }
 
 #conflict-alerts {
-    padding: 15px 20px;
-    margin-top: 25px;
-    border-radius: 8px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-top: var(--spacing-md);
+    border-radius: var(--border-radius-md);
     display: none;
     font-weight: 600;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
+    text-align: right; /* Ensure RTL */
+}
+
+#conflict-alerts h4 {
+    color: inherit; /* Inherit color from parent */
+    margin-top: 0;
+    margin-bottom: var(--spacing-xs);
+    font-size: 1.1rem;
+}
+
+#conflict-alerts ul {
+    list-style: disc;
+    padding-right: var(--spacing-md); /* Adjust for RTL bullet points */
+    margin-top: var(--spacing-xs);
+    margin-bottom: 0;
+    font-weight: 400;
+    font-size: 0.95rem;
 }
 
 #conflict-alerts.alert-danger {
-    background-color: #ffebee;
+    background-color: var(--error-light);
     color: var(--error-color);
     border: 1px solid var(--error-color);
 }
 
 #conflict-alerts.alert-success {
-    background-color: #e8f5e9;
+    background-color: var(--success-light);
     color: var(--success-color);
     border: 1px solid var(--success-color);
 }
 
 #conflict-alerts.alert-info {
-    background-color: #e3f2fd;
+    background-color: var(--info-light);
     color: var(--info-color);
     border: 1px solid var(--info-color);
 }
 
-#conflict-alerts ul {
-    list-style: disc;
-    padding-right: 20px;
-    margin-top: 10px;
-    margin-bottom: 0;
+#conflict-alerts.alert-warning {
+    background-color: var(--warning-light);
+    color: var(--warning-color);
+    border: 1px solid var(--warning-color);
 }
+
 
 /* Tables */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 25px;
-    box-shadow: 0 2px 8px var(--shadow-light);
-    border-radius: 8px;
-    overflow: hidden; /* للحفاظ على الحواف المدورة */
+    margin-top: var(--spacing-md);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
 }
 
 table th, table td {
     border: 1px solid var(--border-color);
     padding: 12px 15px;
     text-align: right;
+    font-size: 0.95rem;
 }
 
 table th {
     background-color: var(--secondary-color);
-    color: white;
+    color: var(--text-light);
     font-weight: 600;
     font-size: 1rem;
 }
@@ -380,68 +466,72 @@ table tr:hover {
 
 /* Professor Schedule Card */
 .professor-schedule-card {
-    background-color: #fff;
+    background-color: var(--bg-white);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 30px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
 }
 
 .professor-schedule-card h3 {
     color: var(--primary-color);
     border-bottom: 1px dashed var(--border-color);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+    padding-bottom: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
 }
 
 .professor-schedule-card button {
-    margin-top: 15px;
+    margin-top: var(--spacing-sm);
 }
 
 /* Reports Specific Styles */
 .evaluation-summary {
-    background-color: #e8f5e9;
-    padding: 15px 20px;
-    border-radius: 8px;
-    margin-bottom: 25px;
+    background-color: var(--success-light);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    margin-bottom: var(--spacing-md);
     border: 1px solid var(--success-color);
     text-align: center;
+    box-shadow: var(--shadow-sm);
 }
 
 .evaluation-summary p {
     font-size: 1.1rem;
     font-weight: bold;
     margin: 0;
+    color: var(--text-primary);
 }
 
 .score-badge {
     display: inline-block;
     padding: 5px 12px;
     border-radius: 20px;
-    color: white;
+    color: var(--text-light);
     font-size: 1.2rem;
     font-weight: 700;
-    margin-right: 10px;
+    margin-right: var(--spacing-xs);
+    min-width: 60px; /* Ensure badge size consistency */
+    text-align: center;
 }
 
 .score-badge.high-score { background-color: var(--success-color); }
-.score-badge.medium-score { background-color: var(--accent-color); }
+.score-badge.medium-score { background-color: var(--warning-color); }
 .score-badge.low-score { background-color: var(--error-color); }
 
 .evaluation-details-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 15px;
-    margin-bottom: 30px;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
 }
 
 .evaluation-item {
-    background-color: #fcfcfc;
+    background-color: var(--bg-white);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm);
+    box-shadow: var(--shadow-sm);
 }
 
 .evaluation-item strong {
@@ -450,59 +540,67 @@ table tr:hover {
 
 .chart-note {
     font-size: 0.9rem;
-    color: #666;
-    margin-top: 10px;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
     font-style: italic;
+    text-align: center;
 }
 
 .chart-container {
-    margin-bottom: 40px;
-    padding: 20px;
-    background-color: #fcfcfc;
-    border-radius: 10px;
-    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--bg-white);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+.chart-container h3 {
+    text-align: center;
 }
 .chart-container canvas {
-    max-height: 400px; /* Limit chart height */
+    max-height: 400px;
+    width: 100% !important; /* Override Chart.js inline width */
+    height: auto !important; /* Override Chart.js inline height */
 }
 
 /* Footer */
 footer {
     text-align: center;
-    padding: 25px;
-    margin-top: 40px;
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-lg);
     background-color: var(--dark-bg);
     color: rgba(255, 255, 255, 0.8);
     border-top: 1px solid #444;
     font-size: 0.9rem;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
 }
 
 /* Modal Styles */
 .modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1000; /* Sit on top */
+    display: none;
+    position: fixed;
+    z-index: 1000;
     left: 0;
     top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6); /* Darker overlay */
     padding-top: 60px;
-    animation: fadeInModal 0.3s ease-out;
+    animation: fadeInModal 0.3s ease-out forwards; /* Use forwards to keep state */
 }
 
 .modal-content {
-    background-color: #fefefe;
-    margin: 5% auto; /* 5% from the top and centered */
-    padding: 30px;
-    border: 1px solid #888;
-    width: 80%; /* Could be more responsive */
-    max-width: 600px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    background-color: var(--bg-white);
+    margin: 5% auto;
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+    width: 90%;
+    max-width: 650px;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
     position: relative;
-    animation: slideInModal 0.4s ease-out;
+    animation: slideInModal 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 @keyframes fadeInModal {
@@ -511,14 +609,16 @@ footer {
 }
 
 @keyframes slideInModal {
-    from { transform: translateY(-50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from { transform: translateY(-50px) scale(0.9); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .close-button {
-    color: #aaa;
-    float: left; /* Align to left for RTL */
-    font-size: 28px;
+    color: var(--text-secondary);
+    position: absolute;
+    top: var(--spacing-sm);
+    left: var(--spacing-sm); /* Adjusted for RTL */
+    font-size: 2rem;
     font-weight: bold;
     cursor: pointer;
     transition: color 0.3s ease;
@@ -526,40 +626,40 @@ footer {
 
 .close-button:hover,
 .close-button:focus {
-    color: #333;
-    text-decoration: none;
-    cursor: pointer;
+    color: var(--primary-dark);
 }
 
-/* Specific modal form styles */
 .modal-content h3 {
     text-align: center;
     color: var(--primary-dark);
-    margin-bottom: 25px;
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 10px;
+    margin-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: var(--spacing-xs);
 }
 
 .modal-content .form-group label {
     font-weight: 600;
-    color: var(--primary-dark);
+    color: var(--text-primary);
 }
 
 .modal-content button {
-    margin-top: 20px;
-    width: auto;
+    margin-top: var(--spacing-md);
+    margin-left: 0; /* Reset default margin */
+    margin-right: var(--spacing-xs); /* Add margin between buttons */
+    padding: 10px 20px; /* Slightly smaller buttons for modal */
+    font-size: 1rem;
 }
 
 
 /* Responsive Design */
 @media (max-width: 1024px) {
     main {
-        margin: 20px auto;
-        padding: 20px;
+        margin: var(--spacing-md) auto;
+        padding: var(--spacing-md);
     }
 
     nav ul {
-        gap: 15px;
+        gap: var(--spacing-sm);
     }
 
     nav ul li a {
@@ -567,13 +667,9 @@ footer {
         font-size: 0.95rem;
     }
 
-    h1 {
-        font-size: 2rem;
-    }
-
-    h2 {
-        font-size: 1.6rem;
-    }
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.8rem; }
+    h3 { font-size: 1.5rem; }
 
     button {
         padding: 10px 20px;
@@ -581,41 +677,46 @@ footer {
     }
 
     .evaluation-details-grid {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
 }
 
 @media (max-width: 768px) {
     header {
-        padding: 1rem 0;
+        padding: var(--spacing-sm) 0;
     }
 
     header h1 {
-        font-size: 1.8rem;
+        font-size: 2rem;
+        margin-bottom: var(--spacing-xs);
     }
 
     nav ul {
         flex-direction: column;
-        gap: 10px;
+        gap: var(--spacing-xs);
         align-items: center;
+    }
+    nav ul li a {
+        width: 80%; /* Make navigation links wider on small screens */
+        justify-content: center;
     }
 
     main {
-        margin: 10px;
-        padding: 15px;
+        margin: var(--spacing-xs);
+        padding: var(--spacing-sm);
     }
 
     section {
-        padding: 15px 0;
+        padding: var(--spacing-sm) 0;
     }
 
     h2 {
-        font-size: 1.4rem;
-        margin-bottom: 15px;
+        font-size: 1.6rem;
+        margin-bottom: var(--spacing-md);
     }
 
     .form-container {
-        padding: 15px;
+        padding: var(--spacing-sm);
     }
 
     .form-group label {
@@ -630,45 +731,43 @@ footer {
     .data-list li {
         flex-direction: column;
         align-items: flex-start;
-        gap: 10px;
+        gap: var(--spacing-xs);
     }
 
     .data-list li button {
         width: 100%;
-        margin-top: 5px;
+        margin-top: var(--spacing-xs);
+        margin-left: 0;
     }
 
-    /* Adjust schedule grid for smaller screens */
+    /* Adjust schedule grid for smaller screens (Vertical Layout) */
     #schedule-grid {
-        display: block; /* تغيير ليتدفق العناصر بدلاً من Grid */
+        display: block; /* Change to block to allow vertical scrolling */
         border: none;
         background-color: transparent;
-        overflow-x: auto; /* للسماح بالتمرير الأفقي إذا كان الجدول كبيراً جداً */
-        white-space: nowrap; /* لمنع رؤوس الأعمدة من الالتفاف */
+        overflow-x: auto; /* Allow horizontal scrolling if table is too wide */
+        white-space: nowrap; /* Prevent day headers from wrapping */
     }
 
     .schedule-header, .schedule-cell {
-        display: inline-block; /* عرض كعناصر داخل سطر */
-        vertical-align: top; /* محاذاة العناصر للأعلى */
-        width: 150px; /* عرض ثابت لكل خلية */
-        min-width: 150px;
-        height: 100px; /* ارتفاع ثابت */
-        min-height: 100px;
+        display: inline-block; /* Display as inline-block to allow side-by-side on one line */
+        vertical-align: top;
+        width: 180px; /* Fixed width for each cell/header column */
+        min-width: 180px;
+        height: 120px; /* Fixed height for better consistency */
+        min-height: 120px;
         border: 1px solid var(--border-color);
         margin: 2px;
-        white-space: normal; /* السماح للمحتوى بالالتفاف داخل الخلية */
+        white-space: normal; /* Allow content to wrap inside cell */
+        box-shadow: var(--shadow-sm); /* Add subtle shadow */
+        border-radius: var(--border-radius-sm);
     }
 
     .schedule-header {
         background-color: var(--secondary-color);
         color: white;
         font-size: 1rem;
-    }
-
-    /* Adjust first column (time slots) to be fixed */
-    .schedule-grid-container { /* سنضيف هذا الـ div في HTML */
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        font-weight: 600;
     }
 
     .course-item {
@@ -682,12 +781,12 @@ footer {
     }
 
     .professor-schedule-card {
-        padding: 15px;
+        padding: var(--spacing-sm);
     }
 
     .modal-content {
         width: 95%;
         margin: 2% auto;
-        padding: 20px;
+        padding: var(--spacing-sm);
     }
 }
