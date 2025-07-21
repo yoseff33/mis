@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدخال البيانات - نظام إدارة الجداول الدراسية الذكي</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <h1>نظام إدارة الجداول الدراسية الذكي</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html"><i class="fas fa-home"></i> الرئيسية</a></li>
+                <li><a href="data-entry.html" class="active"><i class="fas fa-database"></i> إدخال البيانات</a></li>
+                <li><a href="schedule-view.html"><i class="fas fa-calendar-alt"></i> عرض الجداول</a></li>
+                <li><a href="reports.html"><i class="fas fa-chart-bar"></i> التقارير والإحصائيات</a></li>
+                <li><a href="professor-schedules.html"><i class="fas fa-user-tie"></i> جداول الدكاترة</a></li>
+                <li><a href="settings.html"><i class="fas fa-cog"></i> الإعدادات والتصدير</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="data-entry" class="active-section">
+            <h2>إدارة وإدخال البيانات</h2>
+
+            <div class="form-container">
+                <h3>إضافة دكتور جديد</h3>
+                <form id="professor-form">
+                    <div class="form-group">
+                        <label for="prof-name">اسم الدكتور:</label>
+                        <input type="text" id="prof-name" name="profName" required list="prof-names-suggestions">
+                        <datalist id="prof-names-suggestions"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="prof-available-times">الأوقات المتاحة (مثال: الأحد:8:00-10:00, الاثنين:10:00-12:00):</label>
+                        <textarea id="prof-available-times" name="profAvailableTimes" rows="2" placeholder="أدخل الأيام والأوقات مفصولة بفواصل"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="prof-priority">الأولوية (أقل رقم = أولوية أعلى):</label>
+                        <input type="number" id="prof-priority" name="profPriority" value="0">
+                    </div>
+                    <div class="form-group">
+                        <input type="checkbox" id="prof-no-friday" name="profNoFriday">
+                        <label for="prof-no-friday">لا يفضل التدريس يوم الجمعة</label>
+                    </div>
+                    <button type="submit"><i class="fas fa-plus-circle"></i> إضافة دكتور</button>
+                </form>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="upload-professors">رفع ملف CSV/Excel للدكاترة (اختياري):</label>
+                    <input type="file" id="upload-professors" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                </div>
+            </div>
+
+            <div class="form-container" style="margin-top: 30px;">
+                <h3>بحث سريع في البيانات</h3>
+                <div class="form-group">
+                    <label for="global-search">ابحث عن دكتور، قاعة، أو مادة:</label>
+                    <input type="text" id="global-search" placeholder="اكتب اسم للبحث...">
+                </div>
+            </div>
+            <div id="professor-list" class="data-list"></div>
+
+            <div class="form-container">
+                <h3>إضافة قاعة/معمل جديد</h3>
+                <form id="room-form">
+                    <div class="form-group">
+                        <label for="room-name">اسم القاعة/المعمل:</label>
+                        <input type="text" id="room-name" name="roomName" required list="room-names-suggestions">
+                        <datalist id="room-names-suggestions"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="room-type">النوع:</label>
+                        <select id="room-type" name="roomType" required>
+                            <option value="lecture">قاعة محاضرات</option>
+                            <option value="lab">معمل</option>
+                        </select>
+                    </div>
+                     <div class="form-group">
+                        <label for="room-location-group">مجموعة الموقع (مثال: مبنى أ، مبنى ب):</label>
+                        <input type="text" id="room-location-group" name="roomLocationGroup" placeholder="لتحسين التوزيع الجغرافي">
+                    </div>
+                    <div class="form-group">
+                        <label for="room-available-times">الأوقات المتاحة (مثال: الأحد:8:00-18:00):</label>
+                        <textarea id="room-available-times" name="roomAvailableTimes" rows="2" placeholder="أدخل الأيام والأوقات مفصولة بفواصل"></textarea>
+                    </div>
+                    <button type="submit"><i class="fas fa-plus-circle"></i> إضافة قاعة/معمل</button>
+                </form>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="upload-rooms">رفع ملف CSV/Excel للقاعات (اختياري):</label>
+                    <input type="file" id="upload-rooms" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                </div>
+            </div>
+
+            <div id="room-list" class="data-list"></div>
+
+            <div class="form-container">
+                <h3>إضافة مادة جديدة</h3>
+                <form id="course-form">
+                    <div class="form-group">
+                        <label for="course-name">اسم المادة:</label>
+                        <input type="text" id="course-name" name="courseName" required list="course-names-suggestions">
+                        <datalist id="course-names-suggestions"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="course-section-name">اسم الشعبة/الرمز (مثال: أ، ب، 101A):</label>
+                        <input type="text" id="course-section-name" name="courseSectionName" placeholder="اختياري">
+                    </div>
+                    <div class="form-group">
+                        <label for="course-department">القسم/البرنامج:</label>
+                        <input type="text" id="course-department" name="courseDepartment" placeholder="اختياري" list="department-suggestions">
+                        <datalist id="department-suggestions"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="course-professor-id">الدكتور المسؤول:</label>
+                        <select id="course-professor-id" name="courseProfessorId" required>
+                            <option value="">اختر دكتور</option>
+                            </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="course-hours">عدد الساعات النظرية:</label>
+                        <input type="number" id="course-hours" name="courseHours" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="course-lab-hours">عدد الساعات العملية (معمل):</label>
+                        <input type="number" id="course-lab-hours" name="courseLabHours" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="course-preferred-times">أوقات مفضلة (اختياري، مثال: الأحد:8:00-9:40):</label>
+                        <textarea id="course-preferred-times" name="coursePreferredTimes" rows="2" placeholder="أدخل الأيام والأوقات مفصولة بفواصل"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="course-notes">ملاحظات على المادة (اختياري):</label>
+                        <textarea id="course-notes" name="courseNotes" rows="2"></textarea>
+                    </div>
+                    <button type="submit"><i class="fas fa-plus-circle"></i> إضافة مادة</button>
+                </form>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="upload-courses">رفع ملف CSV/Excel للمواد (اختياري):</label>
+                    <input type="file" id="upload-courses" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                </div>
+            </div>
+
+            <div id="course-list" class="data-list"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 نظام إدارة الجداول الدراسية الذكي. جميع الحقوق محفوظة.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+
+    <script type="module" src="js/constants.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/dataManager.js"></script>
+    <script type="module" src="js/scheduler.js"></script>
+    <script type="module" src="js/uiManager.js"></script>
+    <script type="module">
+        // كود تهيئة خاص بهذه الصفحة (data-entry)
+        import { initializeAppPage } from './main.js';
+        initializeAppPage('data-entry'); // تمرير معرف القسم الحالي
+    </script>
+</body>
+</html>
