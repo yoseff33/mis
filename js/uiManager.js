@@ -1,154 +1,60 @@
 // js/uiManager.js
 
-import { DAYS, TIME_SLOTS, TIME_SLOTS_MINUTES } from './constants.js';
+import { DAYS, TIME_SLOTS } from './constants.js'; // لم نعد نستورد TIME_SLOTS_MINUTES هنا
 import { getProfessors, getRooms, getCourses, getCurrentSchedule, setCurrentSchedule, getSavedSchedules, academicPeriod } from './dataManager.js';
-import { parseTimeRange, toMinutes, showAlert, setAlertDiv, isTimeConflict, calculateTimeSlotsMinutes } from './utils.js';
+import { parseTimeRange, toMinutes, showAlert, setAlertDiv, isTimeConflict, generateUniqueId } from './utils.js'; // تمت إزالة calculateTimeSlotsMinutes
 import { checkConflicts, validateFullSchedule, evaluateSchedule, suggestAlternativeTimes } from './scheduler.js';
 
-// DOM Elements - يجب تصديرها لتكون متاحة في main.js
-export const mainContent = document.querySelector('main');
-export const navLinks = document.querySelectorAll('nav ul li a');
-export const scheduleGrid = document.getElementById('schedule-grid');
-export const conflictAlertsDiv = document.getElementById('conflict-alerts');
-
-export const professorForm = document.getElementById('professor-form');
-export const roomForm = document.getElementById('room-form');
-export const courseForm = document.getElementById('course-form');
-
-export const professorListDiv = document.getElementById('professor-list');
-export const roomListDiv = document.getElementById('room-list');
-export const courseListDiv = document.getElementById('course-list');
-
-export const uploadProfessorsInput = document.getElementById('upload-professors');
-export const uploadRoomsInput = document.getElementById('upload-rooms');
-export const uploadCoursesInput = document.getElementById('upload-courses');
-
-export const generateScheduleBtn = document.getElementById('generate-schedule');
-export const saveCurrentScheduleBtn = document.getElementById('save-current-schedule');
-export const loadSavedSchedulesBtn = document.getElementById('load-saved-schedules');
-export const fixAllConflictsBtn = document.getElementById('fix-all-conflicts-btn'); // زر جديد
-
-export const reportsSection = document.getElementById('reports');
-export const professorSchedulesSection = document.getElementById('professor-schedules');
-
-export const exportPdfBtn = document.getElementById('export-pdf');
-export const exportExcelBtn = document.getElementById('export-excel');
-export const exportImageBtn = document.getElementById('export-image');
-
-// Modal Elements
-export const editAppointmentModal = document.getElementById('edit-appointment-modal');
-export const closeButton = editAppointmentModal ? editAppointmentModal.querySelector('.close-button') : null;
-export const editAppointmentForm = document.getElementById('edit-appointment-form');
-export const deleteApptBtn = document.getElementById('delete-appt-btn');
-
-export const editApptOriginalId = document.getElementById('edit-appt-original-id');
-export const editApptCourseName = document.getElementById('edit-appt-course-name');
-export const editApptProfessorId = document.getElementById('edit-appt-professor-id');
-export const editApptRoomId = document.getElementById('edit-appt-room-id');
-export const editApptDay = document.getElementById('edit-appt-day');
-export const editApptTimeRange = document.getElementById('edit-appt-time-range');
-export const editApptNotes = document.getElementById('edit-appt-notes');
-
-export const globalSearchInput = document.getElementById('global-search');
-
-// عناصر الـ datalist للاقتراحات الذكية
-export const profNamesSuggestions = document.getElementById('prof-names-suggestions');
-export const roomNamesSuggestions = document.getElementById('room-names-suggestions');
-export const courseNamesSuggestions = document.getElementById('course-names-suggestions');
-export const departmentSuggestions = document.getElementById('department-suggestions');
-
-// عناصر الفترات الزمنية المخصصة
-export const customTimeSlotsTextArea = document.getElementById('custom-time-slots');
-export const timeSlotsForm = document.getElementById('time-slots-form');
-
-// عناصر الفترة الأكاديمية
-export const academicPeriodForm = document.getElementById('academic-period-form');
-export const currentAcademicYearInput = document.getElementById('current-academic-year');
-export const currentAcademicSemesterInput = document.getElementById('current-academic-semester');
-
+// لم نعد نصدر عناصر DOM من هنا، سيتم اختيارها في main.js
 
 /**
- * Shows a specific section of the page and updates navigation.
- * @param {string} sectionId - The ID of the section to show
+ * يظهر قسمًا معينًا ويحدث التنقل (لم يعد يستخدم لتبديل الأقسام في SPA، بل لتهيئة الصفحة)
+ * @param {string} sectionId - ID القسم المراد تهيئته/عرضه.
+ * (في هيكلية MPA، هذه الدالة تُستخدم لتوجيه التهيئة، لا للتبديل بين أقسام نفس الصفحة)
  */
 export const showSection = (sectionId) => {
-    document.querySelectorAll('section').forEach(section => {
-        section.classList.remove('active-section');
-    });
-    document.getElementById(sectionId)?.classList.add('active-section');
-
-    navLinks.forEach(link => {
-        if (link.dataset.section === sectionId) {
-            link.classList.add('active');
-        } else {
-            link.classList.remove('active');
-        }
-    });
-
-    if (sectionId === 'schedule-view') {
-        renderScheduleGrid();
-    } else if (sectionId === 'data-entry') {
-        renderDataEntryForms();
-        const currentSearchTerm = globalSearchInput ? globalSearchInput.value : '';
-        renderProfessorList(currentSearchTerm);
-        renderRoomList(currentSearchTerm);
-        renderCourseList(currentSearchTerm);
-        populateDatalists();
-    } else if (sectionId === 'reports') {
-        renderReports();
-    } else if (sectionId === 'professor-schedules') {
-        renderProfessorSchedules();
-    } else if (sectionId === 'settings') {
-        if (customTimeSlotsTextArea) {
-            customTimeSlotsTextArea.value = TIME_SLOTS.join('\n');
-        }
-        if (currentAcademicYearInput) {
-            currentAcademicYearInput.value = academicPeriod.year;
-        }
-        if (currentAcademicSemesterInput) {
-            currentAcademicSemesterInput.value = academicPeriod.semester;
-        }
-    }
+    // في هيكلية MPA، لا نحتاج لتشغيل هذا المنطق هنا لأنه يتم تحميل صفحة جديدة
+    // ومع ذلك، قد تظل هذه الدالة مفيدة في main.js لتوجيه التهيئة الأولية
+    console.log(`Initializing section: ${sectionId}`);
 };
 
-export const renderDataEntryForms = () => {
+export const renderDataEntryForms = (courseProfessorSelectElement) => {
     const professorsData = getProfessors();
-    const courseProfessorSelect = document.getElementById('course-professor-id');
-    if (courseProfessorSelect) {
-        courseProfessorSelect.innerHTML = '<option value="">اختر دكتور</option>';
+    if (courseProfessorSelectElement) {
+        courseProfessorSelectElement.innerHTML = '<option value="">اختر دكتور</option>';
         professorsData.forEach(prof => {
             const option = document.createElement('option');
             option.value = prof.id;
             option.textContent = prof.name;
-            courseProfessorSelect.appendChild(option);
+            courseProfessorSelectElement.appendChild(option);
         });
     }
 };
 
-export const populateDatalists = () => {
-    if (profNamesSuggestions) {
-        profNamesSuggestions.innerHTML = getProfessors().map(prof => `<option value="${prof.name}">`).join('');
+export const populateDatalists = (profNamesSuggestionsElement, roomNamesSuggestionsElement, courseNamesSuggestionsElement, departmentSuggestionsElement) => {
+    if (profNamesSuggestionsElement) {
+        profNamesSuggestionsElement.innerHTML = getProfessors().map(prof => `<option value="${prof.name}">`).join('');
     }
-    if (roomNamesSuggestions) {
-        roomNamesSuggestions.innerHTML = getRooms().map(room => `<option value="${room.name}">`).join('');
+    if (roomNamesSuggestionsElement) {
+        roomNamesSuggestionsElement.innerHTML = getRooms().map(room => `<option value="${room.name}">`).join('');
     }
-    if (courseNamesSuggestions) {
-        courseNamesSuggestions.innerHTML = getCourses().map(course => `<option value="${course.name}">`).join('');
+    if (courseNamesSuggestionsElement) {
+        courseNamesSuggestionsElement.innerHTML = getCourses().map(course => `<option value="${course.name}">`).join('');
     }
-    if (departmentSuggestions) {
+    if (departmentSuggestionsElement) {
         const uniqueDepartments = [...new Set(getCourses().map(course => course.department).filter(dep => dep))];
-        departmentSuggestions.innerHTML = uniqueDepartments.map(dep => `<option value="${dep}">`).join('');
+        departmentSuggestionsElement.innerHTML = uniqueDepartments.map(dep => `<option value="${dep}">`).join('');
     }
 };
 
 
-export const renderProfessorList = (searchTerm = '') => {
+export const renderProfessorList = (professorListDivElement, searchTerm = '') => {
     const professorsData = getProfessors();
-    if (!professorListDiv) return;
+    if (!professorListDivElement) return;
 
-    professorListDiv.innerHTML = '<h3>قائمة الدكاترة</h3>';
+    professorListDivElement.innerHTML = '<h3>قائمة الدكاترة</h3>';
     if (professorsData.length === 0) {
-        professorListDiv.innerHTML += '<p class="text-secondary">لا يوجد دكاترة بعد. استخدم النموذج أعلاه لإضافة دكتور.</p>';
+        professorListDivElement.innerHTML += '<p class="text-secondary">لا يوجد دكاترة بعد. استخدم النموذج أعلاه لإضافة دكتور.</p>';
         return;
     }
     const ul = document.createElement('ul');
@@ -183,16 +89,16 @@ export const renderProfessorList = (searchTerm = '') => {
             ul.appendChild(li);
         });
     }
-    professorListDiv.appendChild(ul);
+    professorListDivElement.appendChild(ul);
 };
 
-export const renderRoomList = (searchTerm = '') => {
+export const renderRoomList = (roomListDivElement, searchTerm = '') => {
     const roomsData = getRooms();
-    if (!roomListDiv) return;
+    if (!roomListDivElement) return;
 
-    roomListDiv.innerHTML = '<h3>قائمة القاعات والمعامل</h3>';
+    roomListDivElement.innerHTML = '<h3>قائمة القاعات والمعامل</h3>';
     if (roomsData.length === 0) {
-        roomListDiv.innerHTML += '<p class="text-secondary">لا توجد قاعات بعد. استخدم النموذج أعلاه لإضافة قاعة/معمل.</p>';
+        roomListDivElement.innerHTML += '<p class="text-secondary">لا توجد قاعات بعد. استخدم النموذج أعلاه لإضافة قاعة/معمل.</p>';
         return;
     }
     const ul = document.createElement('ul');
@@ -225,17 +131,17 @@ export const renderRoomList = (searchTerm = '') => {
             ul.appendChild(li);
         });
     }
-    roomListDiv.appendChild(ul);
+    roomListDivElement.appendChild(ul);
 };
 
-export const renderCourseList = (searchTerm = '') => {
+export const renderCourseList = (courseListDivElement, searchTerm = '') => {
     const coursesData = getCourses();
     const professorsData = getProfessors();
-    if (!courseListDiv) return;
+    if (!courseListDivElement) return;
 
-    courseListDiv.innerHTML = '<h3>قائمة المواد</h3>';
+    courseListDivElement.innerHTML = '<h3>قائمة المواد</h3>';
     if (coursesData.length === 0) {
-        courseListDiv.innerHTML += '<p class="text-secondary">لا توجد مواد بعد. استخدم النموذج أعلاه لإضافة مادة.</p>';
+        courseListDivElement.innerHTML += '<p class="text-secondary">لا توجد مواد بعد. استخدم النموذج أعلاه لإضافة مادة.</p>';
         return;
     }
     const ul = document.createElement('ul');
@@ -275,17 +181,17 @@ export const renderCourseList = (searchTerm = '') => {
             ul.appendChild(li);
         });
     }
-    courseListDiv.appendChild(ul);
+    courseListDivElement.appendChild(ul);
 };
 
-export const openEditModal = (appointmentData) => {
-    if (!editAppointmentModal) return;
+export const openEditModal = (appointmentData, editAppointmentModalElement, editApptOriginalIdElement, editApptCourseNameElement, editApptProfessorIdElement, editApptRoomIdElement, editApptDayElement, editApptTimeRangeElement, editApptNotesElement) => {
+    if (!editAppointmentModalElement) return;
 
-    editApptOriginalId.value = appointmentData.id;
-    editApptCourseName.value = `${appointmentData.courseName || `مادة ${appointmentData.courseId}`} ${appointmentData.sectionName ? '(' + appointmentData.sectionName + ')' : ''}`;
-    editApptNotes.value = appointmentData.notes || '';
+    editApptOriginalIdElement.value = appointmentData.id;
+    editApptCourseNameElement.value = `${appointmentData.courseName || `مادة ${appointmentData.courseId}`} ${appointmentData.sectionName ? '(' + appointmentData.sectionName + ')' : ''}`;
+    editApptNotesElement.value = appointmentData.notes || '';
 
-    editApptProfessorId.innerHTML = '';
+    editApptProfessorIdElement.innerHTML = '';
     getProfessors().forEach(prof => {
         const option = document.createElement('option');
         option.value = prof.id;
@@ -293,10 +199,10 @@ export const openEditModal = (appointmentData) => {
         if (prof.id === appointmentData.professorId) {
             option.selected = true;
         }
-        editApptProfessorId.appendChild(option);
+        editApptProfessorIdElement.appendChild(option);
     });
 
-    editApptRoomId.innerHTML = '';
+    editApptRoomIdElement.innerHTML = '';
     getRooms().forEach(room => {
         const option = document.createElement('option');
         option.value = room.id;
@@ -304,10 +210,10 @@ export const openEditModal = (appointmentData) => {
         if (room.id === appointmentData.roomId) {
             option.selected = true;
         }
-        editApptRoomId.appendChild(option);
+        editApptRoomIdElement.appendChild(option);
     });
 
-    editApptDay.innerHTML = '';
+    editApptDayElement.innerHTML = '';
     DAYS.forEach(day => {
         const option = document.createElement('option');
         option.value = day;
@@ -315,10 +221,10 @@ export const openEditModal = (appointmentData) => {
         if (day === appointmentData.day) {
             option.selected = true;
         }
-        editApptDay.appendChild(option);
+        editApptDayElement.appendChild(option);
     });
 
-    editApptTimeRange.innerHTML = '';
+    editApptTimeRangeElement.innerHTML = '';
     TIME_SLOTS.forEach(slot => {
         const option = document.createElement('option');
         option.value = slot;
@@ -326,39 +232,39 @@ export const openEditModal = (appointmentData) => {
         if (slot === appointmentData.timeRange) {
             option.selected = true;
         }
-        editApptTimeRange.appendChild(option);
+        editApptTimeRangeElement.appendChild(option);
     });
 
-    editAppointmentModal.style.display = 'block';
+    editAppointmentModalElement.style.display = 'block';
 };
 
-export const closeEditModal = () => {
-    if (editAppointmentModal) {
-        editAppointmentModal.style.display = 'none';
+export const closeEditModal = (editAppointmentModalElement) => {
+    if (editAppointmentModalElement) {
+        editAppointmentModalElement.style.display = 'none';
     }
 };
 
 let draggedItem = null;
 let draggedAppointmentId = null;
 
-export const renderScheduleGrid = () => {
+export const renderScheduleGrid = (scheduleGridElement, editAppointmentModalElement, editApptOriginalIdElement, editApptCourseNameElement, editApptProfessorIdElement, editApptRoomIdElement, editApptDayElement, editApptTimeRangeElement, editApptNotesElement) => {
     const currentScheduleData = getCurrentSchedule();
     const professorsData = getProfessors();
     const roomsData = getRooms();
 
-    if (!scheduleGrid) return;
-    scheduleGrid.innerHTML = '';
+    if (!scheduleGridElement) return;
+    scheduleGridElement.innerHTML = '';
 
-    scheduleGrid.style.gridTemplateColumns = `minmax(120px, 1fr) repeat(${DAYS.length}, 1fr)`;
+    scheduleGridElement.style.gridTemplateColumns = `minmax(120px, 1fr) repeat(${DAYS.length}, 1fr)`;
 
-    scheduleGrid.appendChild(createGridHeaderCell(''));
+    scheduleGridElement.appendChild(createGridHeaderCell(''));
 
     DAYS.forEach(day => {
-        scheduleGrid.appendChild(createGridHeaderCell(day));
+        scheduleGridElement.appendChild(createGridHeaderCell(day));
     });
 
     TIME_SLOTS.forEach(timeSlot => {
-        scheduleGrid.appendChild(createGridHeaderCell(timeSlot));
+        scheduleGridElement.appendChild(createGridHeaderCell(timeSlot));
 
         DAYS.forEach(day => {
             const cell = document.createElement('div');
@@ -394,18 +300,18 @@ export const renderScheduleGrid = () => {
                 cell.appendChild(courseDiv);
 
                 courseDiv.addEventListener('click', () => {
-                    openEditModal(appt);
+                    openEditModal(appt, editAppointmentModalElement, editApptOriginalIdElement, editApptCourseNameElement, editApptProfessorIdElement, editApptRoomIdElement, editApptDayElement, editApptTimeRangeElement, editApptNotesElement);
                 });
             });
 
             cell.addEventListener('dragover', handleDragOver);
             cell.addEventListener('dragleave', handleDragLeave);
             cell.addEventListener('drop', handleDrop);
-            scheduleGrid.appendChild(cell);
+            scheduleGridElement.appendChild(cell);
         });
     });
     addDragStartListeners();
-    displayScheduleConflicts();
+    displayScheduleConflicts(document.getElementById('conflict-alerts')); // Pass the element here
 };
 
 export const createGridHeaderCell = (text) => {
@@ -429,7 +335,7 @@ export const addDragStartListeners = () => {
             draggedAppointmentId = null;
             document.querySelectorAll('.schedule-cell.drag-over-ok, .schedule-cell.drag-over-conflict').forEach(cell => {
                 cell.classList.remove('drag-over-ok', 'drag-over-conflict');
-                cell.removeAttribute('title'); // إزالة تلميح الأداة
+                cell.removeAttribute('title');
             });
         });
     });
@@ -454,7 +360,7 @@ export const handleDragOver = (e) => {
 
     document.querySelectorAll('.schedule-cell.drag-over-ok, .schedule-cell.drag-over-conflict').forEach(cell => {
         cell.classList.remove('drag-over-ok', 'drag-over-conflict');
-        cell.removeAttribute('title'); // إزالة تلميح الأداة
+        cell.removeAttribute('title');
     });
 
     if (conflicts.length === 0) {
@@ -509,29 +415,29 @@ export const handleDrop = (e) => {
         } else {
             const finalSchedule = [...tempSchedule, updatedAppointment];
             setCurrentSchedule(finalSchedule);
-            renderScheduleGrid();
+            // يجب إعادة عرض الشبكة هنا ( scheduleGridElement, editAppointmentModalElement, ... )
+            renderScheduleGrid(document.getElementById('schedule-grid'), document.getElementById('edit-appointment-modal'), document.getElementById('edit-appt-original-id'), document.getElementById('edit-appt-course-name'), document.getElementById('edit-appt-professor-id'), document.getElementById('edit-appt-room-id'), document.getElementById('edit-appt-day'), document.getElementById('edit-appt-time-range'), document.getElementById('edit-appt-notes'));
             showAlert('تم تعديل الجدول بنجاح!', 'success');
         }
     }
 };
 
-export const displayScheduleConflicts = () => {
+export const displayScheduleConflicts = (conflictAlertsDivElement) => {
     const currentScheduleData = getCurrentSchedule();
     const conflicts = validateFullSchedule(currentScheduleData);
-    if (!conflictAlertsDiv) {
+    if (!conflictAlertsDivElement) {
         console.error("Conflict alerts div not found!");
         return;
     }
-
 
     document.querySelectorAll('.course-item').forEach(item => item.classList.remove('conflict'));
     document.querySelectorAll('.schedule-cell').forEach(cell => cell.classList.remove('conflict'));
 
     if (conflicts.length > 0) {
-        conflictAlertsDiv.innerHTML = `<h4><i class="fas fa-exclamation-triangle"></i> تنبيهات التعارض في الجدول:</h4><ul>${conflicts.map(c => `<li>${c}</li>`).join('')}</ul>`;
-        conflictAlertsDiv.classList.remove('alert-success');
-        conflictAlertsDiv.classList.add('alert-danger');
-        conflictAlertsDiv.style.display = 'block';
+        conflictAlertsDivElement.innerHTML = `<h4><i class="fas fa-exclamation-triangle"></i> تنبيهات التعارض في الجدول:</h4><ul>${conflicts.map(c => `<li>${c}</li>`).join('')}</ul>`;
+        conflictAlertsDivElement.classList.remove('alert-success');
+        conflictAlertsDivElement.classList.add('alert-danger');
+        conflictAlertsDivElement.style.display = 'block';
 
         conflicts.forEach(conflictMsg => {
             const courseMatch = conflictMsg.match(/\[موعد ([^\]]+)\]/);
@@ -560,24 +466,24 @@ export const displayScheduleConflicts = () => {
         });
 
     } else {
-        conflictAlertsDiv.innerHTML = '<h4><i class="fas fa-check-circle"></i> لا توجد تعارضات في الجدول الحالي.</h4>';
-        conflictAlertsDiv.classList.remove('alert-danger');
-        conflictAlertsDiv.classList.add('alert-success');
-        conflictAlertsDiv.style.display = 'block';
+        conflictAlertsDivElement.innerHTML = '<h4><i class="fas fa-check-circle"></i> لا توجد تعارضات في الجدول الحالي.</h4>';
+        conflictAlertsDivElement.classList.remove('alert-danger');
+        conflictAlertsDivElement.classList.add('alert-success');
+        conflictAlertsDivElement.style.display = 'block';
         if (window.alertTimeout) clearTimeout(window.alertTimeout);
         window.alertTimeout = setTimeout(() => {
-            conflictAlertsDiv.style.display = 'none';
+            conflictAlertsDivElement.style.display = 'none';
         }, 3000);
     }
 };
 
-export const renderReports = () => {
+export const renderReports = (reportsSectionElement) => {
     const currentScheduleData = getCurrentSchedule();
     const evaluation = evaluateSchedule(currentScheduleData);
 
-    if (!reportsSection) return;
+    if (!reportsSectionElement) return;
 
-    reportsSection.innerHTML = `
+    reportsSectionElement.innerHTML = `
         <h2><i class="fas fa-chart-bar"></i> تقارير وإحصائيات</h2>
         <div class="evaluation-summary">
             <p><strong>تقييم جودة الجدول:</strong> <span class="score-badge ${evaluation.score >= 80 ? 'high-score' : evaluation.score >= 50 ? 'medium-score' : 'low-score'}">${evaluation.score}/100</span></p>
@@ -602,11 +508,11 @@ export const renderReports = () => {
         </div>
     `;
 
-    renderRoomOccupancyChart(evaluation.details);
-    renderProfessorLoadChart(currentScheduleData);
+    renderRoomOccupancyChart(document.getElementById('roomOccupancyCanvas'), evaluation.details);
+    renderProfessorLoadChart(document.getElementById('professorLoadCanvas'), currentScheduleData);
 };
 
-const renderRoomOccupancyChart = (evaluationDetails) => {
+const renderRoomOccupancyChart = (canvasElement, evaluationDetails) => {
     const roomLabels = [];
     const roomData = [];
     for (const key in evaluationDetails) {
@@ -616,7 +522,7 @@ const renderRoomOccupancyChart = (evaluationDetails) => {
         }
     }
 
-    const ctx = document.getElementById('roomOccupancyCanvas');
+    const ctx = canvasElement;
     if (ctx) {
         if (ctx.chart) {
             ctx.chart.destroy();
@@ -671,7 +577,7 @@ const renderRoomOccupancyChart = (evaluationDetails) => {
     }
 };
 
-const renderProfessorLoadChart = (schedule) => {
+const renderProfessorLoadChart = (canvasElement, schedule) => {
     const professorLoads = {};
     const professorsData = getProfessors();
 
@@ -691,7 +597,7 @@ const renderProfessorLoadChart = (schedule) => {
         profData.push(professorLoads[profId]);
     }
 
-    const ctx = document.getElementById('professorLoadCanvas');
+    const ctx = canvasElement;
     if (ctx) {
          if (ctx.chart) {
             ctx.chart.destroy();
@@ -757,16 +663,16 @@ const renderProfessorLoadChart = (schedule) => {
     }
 };
 
-export const renderProfessorSchedules = () => {
+export const renderProfessorSchedules = (professorSchedulesSectionElement) => {
     const professorsData = getProfessors();
     const currentScheduleData = getCurrentSchedule();
 
-    if (!professorSchedulesSection) return;
+    if (!professorSchedulesSectionElement) return;
 
-    professorSchedulesSection.innerHTML = '<h2><i class="fas fa-user-tie"></i> جداول الدكاترة</h2>';
+    professorSchedulesSectionElement.innerHTML = '<h2><i class="fas fa-user-tie"></i> جداول الدكاترة</h2>';
 
     if (professorsData.length === 0) {
-        professorSchedulesSection.innerHTML += '<p class="text-secondary">لا يوجد دكاترة لعرض جداولهم.</p>';
+        professorSchedulesSectionElement.innerHTML += '<p class="text-secondary">لا يوجد دكاترة لعرض جداولهم.</p>';
         return;
     }
 
@@ -823,7 +729,7 @@ export const renderProfessorSchedules = () => {
         printBtn.addEventListener('click', () => printProfessorSchedule(prof.id));
         profDiv.appendChild(printBtn);
 
-        professorSchedulesSection.appendChild(profDiv);
+        professorSchedulesSectionElement.appendChild(profDiv);
     });
 };
 
@@ -888,8 +794,7 @@ export const printProfessorSchedule = (profId) => {
 };
 
 
-export const exportScheduleToPDF = () => {
-    const scheduleElement = document.getElementById('schedule-view');
+export const exportScheduleToPDF = (scheduleElement) => {
     if (!scheduleElement) {
         showAlert("لم يتم العثور على عنصر الجدول للتصدير.", 'danger');
         return;
@@ -922,7 +827,7 @@ export const exportScheduleToPDF = () => {
     });
 };
 
-export const exportScheduleToExcel = () => {
+export const exportScheduleToExcel = () => { // لا تتطلب عنصر DOM كمعامل
     const schedule = getCurrentSchedule();
     if (schedule.length === 0) {
         showAlert("لا يوجد جدول للتصدير.", 'warning');
@@ -962,8 +867,7 @@ export const exportScheduleToExcel = () => {
     showAlert('تم تصدير الجدول إلى ملف Excel (.xlsx) بنجاح.', 'success');
 };
 
-export const exportScheduleToImage = () => {
-    const scheduleElement = document.getElementById('schedule-view');
+export const exportScheduleToImage = (scheduleElement) => {
     if (!scheduleElement) {
         showAlert("لم يتم العثور على عنصر الجدول للتصدير.", 'danger');
         return;
