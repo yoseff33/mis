@@ -8,6 +8,11 @@ const TIME_SLOTS = [
     "8:00-9:40", "10:00-11:40", "12:00-13:40", "14:00-15:40", "16:00-17:40"
 ]; // Standard slot duration: 100 minutes
 
+const TIME_SLOTS_MINUTES = TIME_SLOTS.map(parseTimeRange).map(t => ({
+    start: toMinutes(t.start),
+    end: toMinutes(t.end)
+})); // لتحويل الأوقات إلى دقائق لسهولة المقارنة
+
 /**
  * Gets the Arabic name of a day by its index (0=Sunday, 1=Monday, etc.).
  * @param {number} dayIndex
@@ -251,7 +256,7 @@ const uploadFile = (file, type) => {
                         reject("ملف Excel فارغ أو لا يحتوي على بيانات كافية.");
                         return;
                     }
-                    
+
                     const header = json[0];
                     const rows = json.slice(1);
                     const jsonData = rows.map(row => {
@@ -261,7 +266,7 @@ const uploadFile = (file, type) => {
                         });
                         return obj;
                     });
-                    
+
                     processUploadedData(jsonData, type, resolve, reject);
                 } catch (error) {
                     reject(`خطأ في معالجة ملف Excel: ${error.message}`);
@@ -306,6 +311,7 @@ const processUploadedData = (data, type, resolve, reject) => {
                 newEntries = data.map(row => ({
                     id: generateUniqueId(),
                     name: String(row.name || 'غير معروف'),
+                    sectionName: String(row.sectionName || ''), // إضافة اسم الشعبة
                     professorId: String(row.professorId || null),
                     hours: parseInt(row.hours) || 0,
                     labHours: parseInt(row.labHours) || 0,
@@ -343,14 +349,15 @@ const initializeDummyData = () => {
 
     ];
     courses = [
-        { id: 'c1', name: "مقدمة في البرمجة", professorId: 'p1', hours: 3, labHours: 1, preferredTimes: ["الأحد:08:00-09:40"], notes: "مادة أساسية" },
-        { id: 'c2', name: "هياكل البيانات", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: ["الثلاثاء:10:00-11:40"], notes: "" },
-        { id: 'c3', name: "شبكات الحاسوب", professorId: 'p1', hours: 3, labHours: 0, preferredTimes: [], notes: "" },
-        { id: 'c4', name: "قواعد البيانات", professorId: 'p3', hours: 3, labHours: 1, preferredTimes: [], notes: "" },
-        { id: 'c5', name: "ذكاء اصطناعي", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: [], notes: "" },
-        { id: 'c6', name: "تحليل وتصميم نظم", professorId: 'p3', hours: 3, labHours: 0, preferredTimes: [], notes: "مشروع" },
-        { id: 'c7', name: "الخوارزميات", professorId: 'p4', hours: 3, labHours: 0, preferredTimes: [], notes: "متقدمة" },
-        { id: 'c8', name: "أمن المعلومات", professorId: 'p4', hours: 2, labHours: 1, preferredTimes: [], notes: "عملي" },
+        { id: 'c1', name: "مقدمة في البرمجة", sectionName: "أ", professorId: 'p1', hours: 3, labHours: 1, preferredTimes: ["الأحد:08:00-09:40"], notes: "مادة أساسية" },
+        { id: 'c1b', name: "مقدمة في البرمجة", sectionName: "ب", professorId: 'p2', hours: 3, labHours: 1, preferredTimes: ["الثلاثاء:08:00-09:40"], notes: "مادة أساسية" }, // شعبة أخرى
+        { id: 'c2', name: "هياكل البيانات", sectionName: "أ", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: ["الثلاثاء:10:00-11:40"], notes: "" },
+        { id: 'c3', name: "شبكات الحاسوب", sectionName: "أ", professorId: 'p1', hours: 3, labHours: 0, preferredTimes: [], notes: "" },
+        { id: 'c4', name: "قواعد البيانات", sectionName: "أ", professorId: 'p3', hours: 3, labHours: 1, preferredTimes: [], notes: "" },
+        { id: 'c5', name: "ذكاء اصطناعي", sectionName: "أ", professorId: 'p2', hours: 2, labHours: 0, preferredTimes: [], notes: "" },
+        { id: 'c6', name: "تحليل وتصميم نظم", sectionName: "أ", professorId: 'p3', hours: 3, labHours: 0, preferredTimes: [], notes: "مشروع" },
+        { id: 'c7', name: "الخوارزميات", sectionName: "أ", professorId: 'p4', hours: 3, labHours: 0, preferredTimes: [], notes: "متقدمة" },
+        { id: 'c8', name: "أمن المعلومات", sectionName: "أ", professorId: 'p4', hours: 2, labHours: 1, preferredTimes: [], notes: "عملي" },
     ];
     currentSchedule = [];
     schedules = [];
@@ -404,7 +411,7 @@ const checkConflicts = (newAppointment, schedule) => {
             const ptRange = parseTimeRange(ptRangeStr);
 
             if (!ptRange) return false; // Skip invalid available times
-            
+
             return ptDay === day && !isTimeConflict(newStart, newEnd, ptRange.start, ptRange.end);
         });
 
@@ -514,6 +521,7 @@ const generateSchedule = () => {
             schedulingUnits.push({
                 courseId: course.id,
                 courseName: course.name,
+                sectionName: course.sectionName, // إضافة اسم الشعبة هنا
                 professorId: course.professorId,
                 isLabSession: i < Math.ceil((course.labHours * 60) / 100), // Mark if this unit is specifically for lab
                 preferredTimes: course.preferredTimes,
@@ -630,6 +638,7 @@ const generateSchedule = () => {
                     id: generateUniqueId(), // Unique ID for each scheduled session
                     courseId: unit.courseId,
                     courseName: unit.courseName,
+                    sectionName: unit.sectionName, // تأكد من وجودها هنا
                     professorId: professor.id,
                     professorName: professor.name, // Store professor name for display ease
                     roomId: room.id,
@@ -673,6 +682,96 @@ const generateSchedule = () => {
     const fullScheduleConflicts = validateFullSchedule(newSchedule);
     return { schedule: newSchedule, unassignedCourses: unassignedCourses, conflicts: fullScheduleConflicts };
 };
+
+/**
+ * يحاول تحسين الجدول الحالي بتقليل الفجوات في جداول الدكاترة. (ميزة مبسطة)
+ * هذه خوارزمية غير شاملة وليست مثالية، لكنها خطوة أولى نحو التحسين.
+ */
+const optimizeScheduleForGaps = () => {
+    showAlert('جاري محاولة تحسين الجدول لتقليل الفجوات...', 'info');
+    let schedule = getCurrentSchedule();
+    let professorsData = getProfessors();
+    let changesMade = false;
+
+    // لنسخ الجدول مؤقتًا وتجنب تعديل الأصل مباشرة أثناء البحث عن حلول
+    let tempSchedule = JSON.parse(JSON.stringify(schedule));
+
+    // تجميع المواعيد لكل دكتور ولكل يوم
+    const profDailySchedule = {};
+    professorsData.forEach(prof => {
+        profDailySchedule[prof.id] = {};
+        DAYS.forEach(day => {
+            profDailySchedule[prof.id][day] = [];
+        });
+    });
+
+    tempSchedule.forEach(appt => {
+        if (profDailySchedule[appt.professorId] && profDailySchedule[appt.professorId][appt.day]) {
+            profDailySchedule[appt.professorId][appt.day].push(appt);
+        }
+    });
+
+    for (const profId in profDailySchedule) {
+        for (const day of DAYS) {
+            let appointments = profDailySchedule[profId][day].sort((a, b) => {
+                const timeA = parseTimeRange(a.timeRange);
+                const timeB = parseTimeRange(b.timeRange);
+                if (!timeA || !timeB) return 0;
+                return toMinutes(timeA.start) - toMinutes(timeB.start);
+            });
+
+            // إذا كان هناك أكثر من موعد، حاول تقليل الفجوات
+            if (appointments.length > 1) {
+                for (let i = 0; i < appointments.length; i++) {
+                    const currentAppt = appointments[i];
+                    const currentTimeSlotIndex = TIME_SLOTS.indexOf(currentAppt.timeRange);
+
+                    // حاول تحريك الموعد الحالي إلى فترة زمنية سابقة في نفس اليوم
+                    for (let j = 0; j < currentTimeSlotIndex; j++) {
+                        const potentialNewTimeRange = TIME_SLOTS[j];
+                        const potentialNewTimeSlot = parseTimeRange(potentialNewTimeRange);
+
+                        if (!potentialNewTimeSlot) continue;
+
+                        // إنشاء موعد محتمل جديد
+                        const potentialAppt = {
+                            ...currentAppt,
+                            day: day,
+                            timeRange: potentialNewTimeRange
+                        };
+
+                        // تحقق من التعارضات مع الجدول الحالي (مع استبعاد الموعد الأصلي)
+                        const conflicts = checkConflicts(potentialAppt, tempSchedule.filter(a => a.id !== currentAppt.id));
+
+                        // إذا لم يكن هناك تعارض وانتقلت إلى فترة زمنية سابقة فعليًا
+                        if (conflicts.length === 0 && potentialNewTimeRange !== currentAppt.timeRange) {
+                            // ابحث عن الموعد الأصلي في tempSchedule وقم بتحديثه
+                            const originalIndexInTemp = tempSchedule.findIndex(a => a.id === currentAppt.id);
+                            if (originalIndexInTemp > -1) {
+                                tempSchedule[originalIndexInTemp] = potentialAppt;
+                                changesMade = true;
+                                // تحديث قائمة المواعيد لهذا الدكتور/اليوم لتعكس التغيير قبل البحث عن تحسينات أخرى
+                                appointments[i] = potentialAppt;
+                                appointments.sort((a, b) => toMinutes(parseTimeRange(a.timeRange).start) - toMinutes(parseTimeRange(b.timeRange).start));
+                                showAlert(`تم تحسين موعد ${currentAppt.courseName} للدكتور ${currentAppt.professorName} في ${day} إلى ${potentialNewTimeRange}.`, 'info');
+                                break; // تم تحريك الموعد، انتقل للموعد التالي
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (changesMade) {
+        setCurrentSchedule(tempSchedule); // حفظ الجدول بعد التحسينات
+        renderScheduleGrid();
+        showAlert('تمت محاولة تحسين الجدول بنجاح!', 'success');
+    } else {
+        showAlert('لم يتم العثور على تحسينات لتقليل الفجوات في الجدول الحالي.', 'info');
+    }
+};
+
 
 /**
  * Evaluates the quality of a given schedule based on various criteria.
@@ -908,6 +1007,7 @@ const suggestAlternativeTimes = (problematicAppointment) => {
                 id: generateUniqueId(), // Use a temporary ID for checking
                 courseId: problematicAppointment.courseId,
                 courseName: problematicAppointment.courseName,
+                sectionName: problematicAppointment.sectionName, // تأكد من وجود الشعبة هنا
                 professorId: problematicAppointment.professorId,
                 professorName: problematicAppointment.professorName,
                 roomId: problematicRoom ? problematicRoom.id : null,
@@ -983,6 +1083,9 @@ const editApptDay = document.getElementById('edit-appt-day');
 const editApptTimeRange = document.getElementById('edit-appt-time-range');
 const editApptNotes = document.getElementById('edit-appt-notes');
 
+// إضافة عنصر البحث الجديد
+const globalSearchInput = document.getElementById('global-search');
+
 
 // UI Helpers
 /**
@@ -1008,9 +1111,11 @@ const showSection = (sectionId) => {
         renderScheduleGrid();
     } else if (sectionId === 'data-entry') {
         renderDataEntryForms();
-        renderProfessorList();
-        renderRoomList();
-        renderCourseList();
+        // عند التبديل إلى قسم إدخال البيانات، أعد عرض القوائم مع أي نص بحث موجود
+        const currentSearchTerm = globalSearchInput ? globalSearchInput.value : '';
+        renderProfessorList(currentSearchTerm);
+        renderRoomList(currentSearchTerm);
+        renderCourseList(currentSearchTerm);
     } else if (sectionId === 'reports') {
         renderReports();
     } else if (sectionId === 'professor-schedules') {
@@ -1049,7 +1154,7 @@ const renderDataEntryForms = () => {
     }
 };
 
-const renderProfessorList = () => {
+const renderProfessorList = (searchTerm = '') => { // إضافة searchTerm
     const professorsData = getProfessors();
     if (!professorListDiv) return;
 
@@ -1059,30 +1164,42 @@ const renderProfessorList = () => {
         return;
     }
     const ul = document.createElement('ul');
-    professorsData.forEach(prof => {
-        const li = document.createElement('li');
-        const availableTimesFormatted = prof.availableTimes.length > 0 ? prof.availableTimes.join(', ') : 'لا يوجد';
-        const preferencesText = [];
-        if (prof.preferences?.noFriday) preferencesText.push('لا جمعة');
-        if (prof.preferences?.noMonday) preferencesText.push('لا اثنين'); // Example for another preference
-        const preferencesDisplay = preferencesText.length > 0 ? ` (${preferencesText.join(', ')})` : '';
+    const lowerCaseSearchTerm = searchTerm.toLowerCase(); // تحويل كلمة البحث لحالة صغيرة
 
-        li.innerHTML = `
-            <div>
-                <strong>${prof.name}</strong> (أولوية: ${prof.priority})${preferencesDisplay}<br>
-                <span>الأوقات المتاحة: ${availableTimesFormatted}</span>
-            </div>
-            <div>
-                <button class="edit-btn" data-id="${prof.id}" data-type="professor"><i class="fas fa-edit"></i> تعديل</button>
-                <button class="delete-btn" data-id="${prof.id}" data-type="professor"><i class="fas fa-trash-alt"></i> حذف</button>
-            </div>
-        `;
-        ul.appendChild(li);
-    });
+    // تصفية البيانات بناءً على كلمة البحث
+    const filteredProfessors = professorsData.filter(prof =>
+        prof.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+        prof.availableTimes.some(time => time.toLowerCase().includes(lowerCaseSearchTerm))
+    );
+
+    if (filteredProfessors.length === 0 && searchTerm !== '') {
+        ul.innerHTML = '<p class="text-secondary">لا توجد نتائج بحث مطابقة.</p>';
+    } else {
+        filteredProfessors.forEach(prof => { // استخدام البيانات المصفاة
+            const li = document.createElement('li');
+            const availableTimesFormatted = prof.availableTimes.length > 0 ? prof.availableTimes.join(', ') : 'لا يوجد';
+            const preferencesText = [];
+            if (prof.preferences?.noFriday) preferencesText.push('لا جمعة');
+            if (prof.preferences?.noMonday) preferencesText.push('لا اثنين');
+            const preferencesDisplay = preferencesText.length > 0 ? ` (${preferencesText.join(', ')})` : '';
+
+            li.innerHTML = `
+                <div>
+                    <strong>${prof.name}</strong> (أولوية: ${prof.priority})${preferencesDisplay}<br>
+                    <span>الأوقات المتاحة: ${availableTimesFormatted}</span>
+                </div>
+                <div>
+                    <button class="edit-btn" data-id="${prof.id}" data-type="professor"><i class="fas fa-edit"></i> تعديل</button>
+                    <button class="delete-btn" data-id="${prof.id}" data-type="professor"><i class="fas fa-trash-alt"></i> حذف</button>
+                </div>
+            `;
+            ul.appendChild(li);
+        });
+    }
     professorListDiv.appendChild(ul);
 };
 
-const renderRoomList = () => {
+const renderRoomList = (searchTerm = '') => { // إضافة searchTerm
     const roomsData = getRooms();
     if (!roomListDiv) return;
 
@@ -1092,26 +1209,40 @@ const renderRoomList = () => {
         return;
     }
     const ul = document.createElement('ul');
-    roomsData.forEach(room => {
-        const li = document.createElement('li');
-        const availableTimesFormatted = room.availableTimes.length > 0 ? room.availableTimes.join(', ') : 'لا يوجد';
-        const locationGroupText = room.locationGroup ? ` (موقع: ${room.locationGroup})` : '';
-        li.innerHTML = `
-            <div>
-                <strong>${room.name}</strong> (${room.type === 'lecture' ? 'قاعة' : 'معمل'})${locationGroupText}<br>
-                <span>الأوقات المتاحة: ${availableTimesFormatted}</span>
-            </div>
-            <div>
-                <button class="edit-btn" data-id="${room.id}" data-type="room"><i class="fas fa-edit"></i> تعديل</button>
-                <button class="delete-btn" data-id="${room.id}" data-type="room"><i class="fas fa-trash-alt"></i> حذف</button>
-            </div>
-        `;
-        ul.appendChild(li);
-    });
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+    // تصفية البيانات
+    const filteredRooms = roomsData.filter(room =>
+        room.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+        room.type.toLowerCase().includes(lowerCaseSearchTerm) ||
+        (room.locationGroup && room.locationGroup.toLowerCase().includes(lowerCaseSearchTerm)) ||
+        room.availableTimes.some(time => time.toLowerCase().includes(lowerCaseSearchTerm))
+    );
+
+    if (filteredRooms.length === 0 && searchTerm !== '') {
+        ul.innerHTML = '<p class="text-secondary">لا توجد نتائج بحث مطابقة.</p>';
+    } else {
+        filteredRooms.forEach(room => { // استخدام البيانات المصفاة
+            const li = document.createElement('li');
+            const availableTimesFormatted = room.availableTimes.length > 0 ? room.availableTimes.join(', ') : 'لا يوجد';
+            const locationGroupText = room.locationGroup ? ` (موقع: ${room.locationGroup})` : '';
+            li.innerHTML = `
+                <div>
+                    <strong>${room.name}</strong> (${room.type === 'lecture' ? 'قاعة' : 'معمل'})${locationGroupText}<br>
+                    <span>الأوقات المتاحة: ${availableTimesFormatted}</span>
+                </div>
+                <div>
+                    <button class="edit-btn" data-id="${room.id}" data-type="room"><i class="fas fa-edit"></i> تعديل</button>
+                    <button class="delete-btn" data-id="${room.id}" data-type="room"><i class="fas fa-trash-alt"></i> حذف</button>
+                </div>
+            `;
+            ul.appendChild(li);
+        });
+    }
     roomListDiv.appendChild(ul);
 };
 
-const renderCourseList = () => {
+const renderCourseList = (searchTerm = '') => { // إضافة searchTerm
     const coursesData = getCourses();
     const professorsData = getProfessors();
     if (!courseListDiv) return;
@@ -1122,23 +1253,41 @@ const renderCourseList = () => {
         return;
     }
     const ul = document.createElement('ul');
-    coursesData.forEach(course => {
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+    // تصفية البيانات
+    const filteredCourses = coursesData.filter(course => {
         const profName = professorsData.find(p => p.id === course.professorId)?.name || 'غير محدد';
-        const preferredTimesText = course.preferredTimes.length > 0 ? `(مفضلة: ${course.preferredTimes.join(', ')})` : '';
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <div>
-                <strong>${course.name}</strong> (دكتور: ${profName})<br>
-                <span>ساعات: ${course.hours} نظري, ${course.labHours} عملي ${preferredTimesText}</span><br>
-                <span>ملاحظات: ${course.notes || '-'}</span>
-            </div>
-            <div>
-                <button class="edit-btn" data-id="${course.id}" data-type="course"><i class="fas fa-edit"></i> تعديل</button>
-                <button class="delete-btn" data-id="${course.id}" data-type="course"><i class="fas fa-trash-alt"></i> حذف</button>
-            </div>
-        `;
-        ul.appendChild(li);
+        return course.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+               (course.sectionName && course.sectionName.toLowerCase().includes(lowerCaseSearchTerm)) || // البحث باسم الشعبة
+               profName.toLowerCase().includes(lowerCaseSearchTerm) ||
+               (course.notes && course.notes.toLowerCase().includes(lowerCaseSearchTerm)) ||
+               course.preferredTimes.some(time => time.toLowerCase().includes(lowerCaseSearchTerm));
     });
+
+
+    if (filteredCourses.length === 0 && searchTerm !== '') {
+        ul.innerHTML = '<p class="text-secondary">لا توجد نتائج بحث مطابقة.</p>';
+    } else {
+        filteredCourses.forEach(course => { // استخدام البيانات المصفاة
+            const profName = professorsData.find(p => p.id === course.professorId)?.name || 'غير محدد';
+            const preferredTimesText = course.preferredTimes.length > 0 ? `(مفضلة: ${course.preferredTimes.join(', ')})` : '';
+            const sectionDisplay = course.sectionName ? ` (شعبة: ${course.sectionName})` : ''; // عرض الشعبة
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div>
+                    <strong>${course.name}${sectionDisplay}</strong> (دكتور: ${profName})<br>
+                    <span>ساعات: ${course.hours} نظري, ${course.labHours} عملي ${preferredTimesText}</span><br>
+                    <span>ملاحظات: ${course.notes || '-'}</span>
+                </div>
+                <div>
+                    <button class="edit-btn" data-id="${course.id}" data-type="course"><i class="fas fa-edit"></i> تعديل</button>
+                    <button class="delete-btn" data-id="${course.id}" data-type="course"><i class="fas fa-trash-alt"></i> حذف</button>
+                </div>
+            `;
+            ul.appendChild(li);
+        });
+    }
     courseListDiv.appendChild(ul);
 };
 
@@ -1148,7 +1297,7 @@ const openEditModal = (appointmentData) => {
 
     // Populate modal fields with appointment data
     editApptOriginalId.value = appointmentData.id;
-    editApptCourseName.value = appointmentData.courseName || `مادة ${appointmentData.courseId}`;
+    editApptCourseName.value = `${appointmentData.courseName || `مادة ${appointmentData.courseId}`} ${appointmentData.sectionName ? '(' + appointmentData.sectionName + ')' : ''}`; // عرض الشعبة
     editApptNotes.value = appointmentData.notes || '';
 
     // Populate Professor Select
@@ -1264,12 +1413,12 @@ const renderScheduleGrid = () => {
                 }
                 // Add professor-specific class for potential color-coding (example)
                 courseDiv.classList.add(`prof-${appt.professorId}`);
-                
+
                 const prof = professorsData.find(p => p.id === appt.professorId);
                 const room = roomsData.find(r => r.id === appt.roomId);
 
                 courseDiv.innerHTML = `
-                    <strong>${appt.courseName || 'مادة غير معروفة'}</strong><br>
+                    <strong>${appt.courseName || 'مادة غير معروفة'} ${appt.sectionName ? '(' + appt.sectionName + ')' : ''}</strong><br>
                     <span>د: ${prof ? prof.name : 'غير معروف'}</span><br>
                     <span>ق: ${room ? room.name : 'غير معروف'}</span>
                 `;
@@ -1697,7 +1846,7 @@ const renderProfessorSchedules = () => {
                 const row = table.insertRow();
                 row.insertCell().textContent = appt.day;
                 row.insertCell().textContent = appt.timeRange;
-                row.insertCell().textContent = appt.courseName;
+                row.insertCell().textContent = `${appt.courseName} ${appt.sectionName ? '(' + appt.sectionName + ')' : ''}`; // عرض الشعبة
                 row.insertCell().textContent = appt.roomName;
                 row.insertCell().textContent = appt.notes || '-';
             });
@@ -1757,8 +1906,7 @@ const printProfessorSchedule = (profId) => {
                 <tr>
                     <td>${appt.day}</td>
                     <td>${appt.timeRange}</td>
-                    <td>${appt.courseName}</td>
-                    <td>${appt.roomName}</td>
+                    <td>${appt.courseName} ${appt.sectionName ? '(' + appt.sectionName + ')' : ''}</td> <td>${appt.roomName}</td>
                     <td>${appt.notes || '-'}</td>
                 </tr>
             `;
@@ -1826,7 +1974,7 @@ const exportScheduleToExcel = () => {
     }
 
     const data = [
-        ["اليوم", "الوقت", "المادة", "الدكتور", "القاعة/المعمل", "النوع", "ملاحظات"] // Header row
+        ["اليوم", "الوقت", "المادة", "الدكتور", "القاعة/المعمل", "النوع", "ملاحظات", "الشعبة"] // Header row
     ];
 
     schedule.forEach(appt => {
@@ -1837,7 +1985,8 @@ const exportScheduleToExcel = () => {
             appt.professorName || appt.professorId,
             appt.roomName || appt.roomId,
             appt.type,
-            appt.notes || ''
+            appt.notes || '',
+            appt.sectionName || '' // إضافة الشعبة
         ]);
     });
 
@@ -1904,7 +2053,7 @@ const setupEventListeners = () => {
                 }
             };
             addProfessor(newProf);
-            renderProfessorList();
+            renderProfessorList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
             renderDataEntryForms(); // Update professor dropdown in course form
             professorForm.reset();
             showAlert('تم إضافة الدكتور بنجاح.', 'success');
@@ -1923,7 +2072,7 @@ const setupEventListeners = () => {
                 locationGroup: formData.get('roomLocationGroup') || ''
             };
             addRoom(newRoom);
-            renderRoomList();
+            renderRoomList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
             roomForm.reset();
             showAlert('تم إضافة القاعة/المعمل بنجاح.', 'success');
         });
@@ -1936,6 +2085,7 @@ const setupEventListeners = () => {
             const formData = new FormData(courseForm);
             const newCourse = {
                 name: formData.get('courseName'),
+                sectionName: formData.get('courseSectionName') || '', // التقاط اسم الشعبة
                 professorId: formData.get('courseProfessorId'),
                 hours: parseInt(formData.get('courseHours')) || 0,
                 labHours: parseInt(formData.get('courseLabHours')) || 0,
@@ -1943,7 +2093,7 @@ const setupEventListeners = () => {
                 notes: formData.get('courseNotes') || ''
             };
             addCourse(newCourse);
-            renderCourseList();
+            renderCourseList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
             courseForm.reset();
             showAlert('تم إضافة المادة بنجاح.', 'success');
         });
@@ -1959,9 +2109,10 @@ const setupEventListeners = () => {
                 if (type === 'professor') deleteProfessor(id);
                 else if (type === 'room') deleteRoom(id);
                 else if (type === 'course') deleteCourse(id);
-                renderProfessorList();
-                renderRoomList();
-                renderCourseList();
+                const currentSearchTerm = globalSearchInput ? globalSearchInput.value : '';
+                renderProfessorList(currentSearchTerm);
+                renderRoomList(currentSearchTerm);
+                renderCourseList(currentSearchTerm);
                 renderDataEntryForms();
                 renderScheduleGrid(); // Re-render schedule if data changed
                 showAlert(`تم حذف الـ ${type} بنجاح.`, 'success');
@@ -1983,7 +2134,7 @@ const setupEventListeners = () => {
                 try {
                     await uploadFile(file, 'professors');
                     showAlert('تم رفع ملف الدكاترة بنجاح.', 'success');
-                    renderProfessorList();
+                    renderProfessorList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
                     renderDataEntryForms();
                 } catch (error) {
                     showAlert(`خطأ في رفع ملف الدكاترة: ${error}`, 'danger');
@@ -2000,7 +2151,7 @@ const setupEventListeners = () => {
                 try {
                     await uploadFile(file, 'rooms');
                     showAlert('تم رفع ملف القاعات بنجاح.', 'success');
-                    renderRoomList();
+                    renderRoomList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
                 } catch (error) {
                     showAlert(`خطأ في رفع ملف القاعات: ${error}`, 'danger');
                 } finally {
@@ -2016,7 +2167,7 @@ const setupEventListeners = () => {
                 try {
                     await uploadFile(file, 'courses');
                     showAlert('تم رفع ملف المواد بنجاح.', 'success');
-                    renderCourseList();
+                    renderCourseList(globalSearchInput ? globalSearchInput.value : ''); // تحديث بالبحث
                     renderDataEntryForms();
                 } catch (error) {
                     showAlert(`خطأ في رفع ملف المواد: ${error}`, 'danger');
@@ -2042,6 +2193,12 @@ const setupEventListeners = () => {
                 showAlert(msg, 'warning');
             }
         });
+    }
+
+    // زر تحسين الجدول
+    const optimizeScheduleBtn = document.getElementById('optimize-schedule-btn');
+    if (optimizeScheduleBtn) {
+        optimizeScheduleBtn.addEventListener('click', optimizeScheduleForGaps);
     }
 
     // Save Current Schedule Version Button
@@ -2158,6 +2315,16 @@ const setupEventListeners = () => {
             }
         });
     }
+
+    // إضافة مُستمع الحدث لحقل البحث العام
+    if (globalSearchInput) {
+        globalSearchInput.addEventListener('input', () => {
+            const searchTerm = globalSearchInput.value;
+            renderProfessorList(searchTerm);
+            renderRoomList(searchTerm);
+            renderCourseList(searchTerm);
+        });
+    }
 };
 
 /**
@@ -2171,6 +2338,11 @@ const initializeApp = () => {
     }
     setupEventListeners();
     showSection('data-entry'); // Default starting section: Data Entry
+    // عند تحميل قسم إدخال البيانات، أعد عرض القوائم مع حقل بحث فارغ في البداية (أو نص البحث الحالي)
+    const currentSearchTerm = globalSearchInput ? globalSearchInput.value : '';
+    renderProfessorList(currentSearchTerm);
+    renderRoomList(currentSearchTerm);
+    renderCourseList(currentSearchTerm);
 };
 
 // Initialize the app when DOM content is fully loaded
