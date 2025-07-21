@@ -9,7 +9,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <header>
@@ -56,6 +57,13 @@
                 </div>
             </div>
 
+            <div class="form-container" style="margin-top: 30px;">
+                <h3>بحث سريع في البيانات</h3>
+                <div class="form-group">
+                    <label for="global-search">ابحث عن دكتور، قاعة، أو مادة:</label>
+                    <input type="text" id="global-search" placeholder="اكتب اسم للبحث...">
+                </div>
+            </div>
             <div id="professor-list" class="data-list"></div>
 
             <div class="form-container">
@@ -98,6 +106,10 @@
                         <input type="text" id="course-name" name="courseName" required>
                     </div>
                     <div class="form-group">
+                        <label for="course-section-name">اسم الشعبة/الرمز (مثال: أ، ب، 101A):</label>
+                        <input type="text" id="course-section-name" name="courseSectionName" placeholder="اختياري">
+                    </div>
+                    <div class="form-group">
                         <label for="course-professor-id">الدكتور المسؤول:</label>
                         <select id="course-professor-id" name="courseProfessorId" required>
                             <option value="">اختر دكتور</option>
@@ -134,6 +146,7 @@
             <h2>عرض وتعديل الجداول</h2>
             <div class="schedule-controls">
                 <button id="generate-schedule"><i class="fas fa-magic"></i> توليد الجدول تلقائياً</button>
+                <button id="optimize-schedule-btn"><i class="fas fa-arrows-alt-h"></i> تحسين الجدول (تقليل الفجوات)</button>
                 <button id="save-current-schedule"><i class="fas fa-save"></i> حفظ الجدول الحالي كنسخة</button>
                 <button id="load-saved-schedules"><i class="fas fa-folder-open"></i> تحميل جدول محفوظ</button>
             </div>
