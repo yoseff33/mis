@@ -80,7 +80,7 @@ p { margin-bottom: 1.2rem; color: var(--text-secondary); }
 header {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: var(--text-light);
-    padding: var(--spacing-sm) 0; /* تم تصغير الpadding العلوي والسفلي */
+    padding: var(--spacing-xs) 0; /* تم تصغير الpadding العلوي والسفلي */
     text-align: center;
     box-shadow: var(--shadow-xl); /* Stronger shadow for header */
     position: sticky;
@@ -91,7 +91,7 @@ header {
 
 header h1 {
     margin: 0;
-    font-size: 2.2rem; /* تم تصغير حجم الخط الافتراضي لـ h1 في الheader */
+    font-size: 1.8rem; /* تم تصغير حجم الخط الافتراضي لـ h1 في الheader */
     color: var(--text-light);
     text-shadow: 2px 2px 5px rgba(0,0,0,0.3); /* More pronounced text shadow */
     margin-bottom: var(--spacing-xs); /* تقليل المسافة السفلية */
@@ -113,36 +113,36 @@ nav ul li a {
     color: var(--text-light);
     text-decoration: none;
     font-weight: 600;
-    padding: 8px 18px; /* تم تصغير الpadding */
+    padding: 6px 14px; /* تم تصغير الpadding */
     border-radius: var(--border-radius-md);
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease, padding 0.3s ease; /* إضافة padding للانتقال السلس */
     display: flex;
     align-items: center;
-    gap: 6px; /* تقليل المسافة للأيقونة */
-    font-size: 0.95rem; /* تم تصغير حجم الخط */
+    gap: 4px; /* تقليل المسافة للأيقونة */
+    font-size: 0.85rem; /* تم تصغير حجم الخط */
 }
 
 nav ul li a:hover,
 nav ul li a.active {
     background-color: rgba(255, 255, 255, 0.25);
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-2px); /* تعديل طفيف */
+    box-shadow: var(--shadow-sm); /* ظل أخف */
 }
 
 /* حالة الشريط العلوي عند التمرير لأسفل */
 header.header-scrolled {
-    padding: var(--spacing-xs) 0; /* تصغير الpadding أكثر */
-    box-shadow: var(--shadow-lg); /* ظل أخف عند التقلص */
+    padding: 5px 0; /* تصغير الpadding أكثر */
+    box-shadow: var(--shadow-md); /* ظل أخف عند التقلص */
 }
 
 header.header-scrolled h1 {
-    font-size: 1.5rem; /* تصغير حجم الخط أكثر */
+    font-size: 1.2rem; /* تصغير حجم الخط أكثر */
     margin-bottom: 0;
 }
 
 header.header-scrolled nav ul li a {
-    padding: 5px 12px; /* تصغير الpadding أكثر */
-    font-size: 0.85rem; /* تصغير حجم الخط أكثر */
+    padding: 3px 8px; /* تصغير الpadding أكثر */
+    font-size: 0.75rem; /* تصغير حجم الخط أكثر */
 }
 
 
@@ -755,18 +755,18 @@ footer {
     }
 
     nav ul li a {
-        padding: 10px 20px;
-        font-size: 0.95rem;
-        gap: 6px;
+        padding: 8px 16px; /* تم تصغير الpadding */
+        font-size: 0.85rem; /* تم تصغير حجم الخط */
+        gap: 5px;
     }
 
-    h1 { font-size: 2.5rem; }
-    h2 { font-size: 2rem; padding-bottom: 0.8rem; margin-bottom: 2rem; }
-    h3 { font-size: 1.6rem; }
+    h1 { font-size: 2.2rem; } /* تصغير حجم ال h1 */
+    h2 { font-size: 1.8rem; padding-bottom: 0.8rem; margin-bottom: 1.8rem; }
+    h3 { font-size: 1.5rem; }
 
     button {
-        padding: 12px 25px;
-        font-size: 1rem;
+        padding: 10px 20px;
+        font-size: 0.95rem;
         gap: 8px;
     }
 
@@ -787,11 +787,11 @@ footer {
 
 @media (max-width: 768px) {
     header {
-        padding: var(--spacing-sm) 0;
+        padding: var(--spacing-xs) 0; /* تصغير الpadding أكثر */
     }
 
     header h1 {
-        font-size: 2.2rem;
+        font-size: 1.6rem; /* تصغير حجم الخط أكثر */
         margin-bottom: var(--spacing-xs);
     }
 
@@ -803,7 +803,8 @@ footer {
     nav ul li a {
         width: 90%;
         justify-content: center;
-        padding: 10px 15px;
+        padding: 8px 12px; /* تصغير الpadding */
+        font-size: 0.8rem;
     }
 
     main {
@@ -816,7 +817,7 @@ footer {
     }
 
     h2 {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         margin-bottom: var(--spacing-md);
     }
 
@@ -826,12 +827,12 @@ footer {
 
     .form-group label {
         margin-bottom: 5px;
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
 
     .form-group input, .form-group select, .form-group textarea, #global-search {
-        padding: 10px;
-        font-size: 0.95rem;
+        padding: 8px;
+        font-size: 0.9rem;
     }
 
     .data-list li {
@@ -845,7 +846,7 @@ footer {
         width: 100%;
         margin-top: var(--spacing-xs);
         margin-left: 0;
-        padding: 8px 15px;
+        padding: 6px 12px;
     }
 
     /* Adjust schedule grid for smaller screens (Vertical Layout) */
@@ -860,10 +861,10 @@ footer {
     .schedule-header, .schedule-cell {
         display: inline-block;
         vertical-align: top;
-        width: 160px; /* Slightly narrower */
-        min-width: 160px;
-        height: 100px; /* Slightly shorter */
-        min-height: 100px;
+        width: 140px; /* Slightly narrower */
+        min-width: 140px;
+        height: 90px; /* Slightly shorter */
+        min-height: 90px;
         border: 1px solid var(--border-color);
         margin: 2px;
         white-space: normal;
@@ -872,20 +873,20 @@ footer {
     }
 
     .schedule-header {
-        font-size: 0.95rem;
+        font-size: 0.85rem;
     }
 
     .course-item {
-        font-size: 0.75rem;
-        padding: 5px;
-        width: calc(100% - 10px);
+        font-size: 0.7rem;
+        padding: 4px;
+        width: calc(100% - 8px);
     }
-    .course-item strong { font-size: 0.9rem; }
-    .course-item span { font-size: 0.7rem; }
+    .course-item strong { font-size: 0.85rem; }
+    .course-item span { font-size: 0.65rem; }
 
     table th, table td {
-        padding: 10px 12px;
-        font-size: 0.9rem;
+        padding: 8px 10px;
+        font-size: 0.85rem;
     }
 
     .professor-schedule-card {
@@ -898,7 +899,7 @@ footer {
         padding: var(--spacing-md);
     }
     .modal-content button {
-        padding: 10px 20px;
-        font-size: 1rem;
+        padding: 8px 18px;
+        font-size: 0.95rem;
     }
 }
