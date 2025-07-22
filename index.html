@@ -3,68 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الرئيسية - نظام إدارة الجداول الدراسية الذكي</title>
+    <title>نظام توليد الجداول الجامعية</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <header>
-        <h1>نظام إدارة الجداول الدراسية الذكي</h1>
+        <h1>نظام توليد الجداول الجامعية الذكي</h1>
         <nav>
-            <ul>
-                <li><a href="index.html" class="active"><i class="fas fa-home"></i> الرئيسية</a></li>
-                <li><a href="data-entry.html"><i class="fas fa-database"></i> إدخال البيانات</a></li>
-                <li><a href="schedule-view.html"><i class="fas fa-calendar-alt"></i> عرض الجداول</a></li>
-                <li><a href="reports.html"><i class="fas fa-chart-bar"></i> التقارير والإحصائيات</a></li>
-                <li><a href="professor-schedules.html"><i class="fas fa-user-tie"></i> جداول الدكاترة</a></li>
-                <li><a href="settings.html"><i class="fas fa-cog"></i> الإعدادات والتصدير</a></li>
-            </ul>
+            <button id="dataEntryBtn">إدخال البيانات</button>
+            <button id="generateScheduleBtn">توليد الجداول</button>
+            <button id="viewSchedulesBtn">عرض الجداول</button>
+            <button id="settingsBtn">الإعدادات</button>
         </nav>
     </header>
 
     <main>
-        <section id="home-dashboard" class="active-section">
-            <h2>مرحباً بك في نظام إدارة الجداول الدراسية الذكي!</h2>
-            <p>هذا النظام يساعدك على توليد وإدارة الجداول الدراسية بكفاءة عالية، مع خوارزميات ذكية لمنع التعارضات وتحسين التوزيع.</p>
-
-            <div class="dashboard-grid">
-                <a href="data-entry.html" class="dashboard-card">
-                    <i class="fas fa-database fa-3x"></i>
-                    <h3>إدارة البيانات</h3>
-                    <p>أضف وعدّل بيانات الدكاترة، القاعات، والمواد.</p>
-                </a>
-                <a href="schedule-view.html" class="dashboard-card">
-                    <i class="fas fa-calendar-alt fa-3x"></i>
-                    <h3>توليد وعرض الجداول</h3>
-                    <p>ولّد الجداول تلقائياً وعدّلها يدوياً.</p>
-                </a>
-                <a href="reports.html" class="dashboard-card">
-                    <i class="fas fa-chart-bar fa-3x"></i>
-                    <h3>التقارير والإحصائيات</h3>
-                    <p>شاهد تحليلات وإحصائيات مفصلة للجدول.</p>
-                </a>
-                <a href="professor-schedules.html" class="dashboard-card">
-                    <i class="fas fa-user-tie fa-3x"></i>
-                    <h3>جداول الدكاترة</h3>
-                    <p>استعرض واطبع الجداول الخاصة بكل دكتور.</p>
-                </a>
-                <a href="settings.html" class="dashboard-card">
-                    <i class="fas fa-cog fa-3x"></i>
-                    <h3>الإعدادات والتصدير</h3>
-                    <p>تحكم في الفترات الزمنية وتصدير الجداول.</p>
-                </a>
+        <section id="dataEntrySection" class="active-section">
+            <h2>إدخال بيانات الدكاترة والمواد والقاعات</h2>
+            <div class="input-options">
+                <button id="manualInputBtn">إدخال يدوي</button>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls">
+                <button id="downloadTemplateBtn">تحميل قالب Excel</button>
+            </div>
+            <div id="manualInputForms">
+                <h3>إضافة دكتور جديد</h3>
+                <form id="addDoctorForm">
+                    <input type="text" id="doctorName" placeholder="اسم الدكتور" required>
+                    <input type="number" id="doctorMaxHours" placeholder="أقصى ساعات تدريس" required>
+                    <button type="submit">إضافة دكتور</button>
+                </form>
+                </div>
+            <div id="dataSummary">
+                <h3>ملخص البيانات المدخلة</h3>
+                <ul id="doctorsList"></ul>
+                <ul id="coursesList"></ul>
+                <ul id="roomsList"></ul>
             </div>
         </section>
-    </main>
 
-    <footer>
-        <p>&copy; 2024 نظام إدارة الجداول الدراسية الذكي. جميع الحقوق محفوظة.</p>
-    </footer>
+        <section id="scheduleViewSection" style="display:none;">
+            <h2>الجداول الدراسية</h2>
+            <div class="schedule-controls">
+                <select id="scheduleFilter">
+                    <option value="all">الجدول العام</option>
+                    </select>
+                <button id="exportPngBtn">تصدير PNG</button>
+                <button id="exportPdfBtn">تصدير PDF</button>
+                <button id="printBtn">طباعة</button>
+            </div>
+            <div id="scheduleDisplay">
+                </div>
+            <div id="conflictAlerts" class="alerts">
+                </div>
+        </section>
 
-    <script type="module" src="js/constants.js"></script>
-    <script type="module" src="js/utils.js"></script>
-    <script type="module" src="js/dataManager.js"></script>
-    <script type="module" src="js/uiManager.js"></script>
-    <script type="module" src="js/main.js"></script>
-</body>
+        </main>
+
+    <script src="js/data-manager.js"></script>
+    <script src="js/scheduler.js"></script>
+    <script src="js/conflict-solver.js"></script>
+    <script src="js/rules-engine.js"></script>
+    <script src="js/export-manager.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+    </body>
 </html>
