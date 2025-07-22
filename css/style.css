@@ -80,21 +80,23 @@ p { margin-bottom: 1.2rem; color: var(--text-secondary); }
 header {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: var(--text-light);
-    padding: var(--spacing-md) 0;
+    padding: var(--spacing-sm) 0; /* تم تصغير الpadding العلوي والسفلي */
     text-align: center;
     box-shadow: var(--shadow-xl); /* Stronger shadow for header */
     position: sticky;
     top: 0;
     z-index: 100;
+    transition: all 0.3s ease-in-out; /* إضافة انتقال سلس للتأثيرات الجديدة */
 }
 
 header h1 {
     margin: 0;
-    font-size: 2.8rem;
+    font-size: 2.2rem; /* تم تصغير حجم الخط الافتراضي لـ h1 في الheader */
     color: var(--text-light);
     text-shadow: 2px 2px 5px rgba(0,0,0,0.3); /* More pronounced text shadow */
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs); /* تقليل المسافة السفلية */
     font-weight: 800;
+    transition: font-size 0.3s ease-in-out, margin 0.3s ease-in-out; /* انتقال سلس للحجم والمسافة */
 }
 
 nav ul {
@@ -111,37 +113,54 @@ nav ul li a {
     color: var(--text-light);
     text-decoration: none;
     font-weight: 600;
-    padding: 12px 25px; /* Slightly larger padding */
+    padding: 8px 18px; /* تم تصغير الpadding */
     border-radius: var(--border-radius-md);
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease, padding 0.3s ease; /* إضافة padding للانتقال السلس */
     display: flex;
     align-items: center;
-    gap: 8px; /* More space for icon */
-    font-size: 1.05rem;
+    gap: 6px; /* تقليل المسافة للأيقونة */
+    font-size: 0.95rem; /* تم تصغير حجم الخط */
 }
 
 nav ul li a:hover,
 nav ul li a.active {
-    background-color: rgba(255, 255, 255, 0.25); /* Slightly more opaque hover */
-    transform: translateY(-4px); /* More pronounced lift */
+    background-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-4px);
     box-shadow: var(--shadow-md);
 }
 
+/* حالة الشريط العلوي عند التمرير لأسفل */
+header.header-scrolled {
+    padding: var(--spacing-xs) 0; /* تصغير الpadding أكثر */
+    box-shadow: var(--shadow-lg); /* ظل أخف عند التقلص */
+}
+
+header.header-scrolled h1 {
+    font-size: 1.5rem; /* تصغير حجم الخط أكثر */
+    margin-bottom: 0;
+}
+
+header.header-scrolled nav ul li a {
+    padding: 5px 12px; /* تصغير الpadding أكثر */
+    font-size: 0.85rem; /* تصغير حجم الخط أكثر */
+}
+
+
 /* Main Content Area */
 main {
-    padding: var(--spacing-xl); /* More generous padding */
-    max-width: 1300px; /* Slightly narrower for focus */
+    padding: var(--spacing-xl);
+    max-width: 1300px;
     margin: var(--spacing-xl) auto;
     background-color: var(--bg-white);
     border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-xl); /* Prominent shadow for main container */
+    box-shadow: var(--shadow-xl);
     border: 1px solid var(--border-color);
 }
 
 section {
-    display: none; /* Keep for SPA compatibility if needed, but not for MPA navigation */
+    /* display: none;  هذا الكلاس لم يعد يستخدم في هيكلية MPA الجديدة */
     padding: var(--spacing-md) 0;
-    animation: fadeIn 0.8s ease-out; /* Slower fade-in */
+    animation: fadeIn 0.8s ease-out;
 }
 
 section.active-section {
@@ -149,7 +168,7 @@ section.active-section {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(30px); } /* More pronounced starting point */
+    from { opacity: 0; transform: translateY(30px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -158,14 +177,14 @@ button {
     background-color: var(--primary-color);
     color: var(--text-light);
     border: none;
-    padding: 14px 30px; /* Larger buttons */
+    padding: 14px 30px;
     border-radius: var(--border-radius-md);
     cursor: pointer;
     font-size: 1.1rem;
     font-weight: 600;
-    margin: 8px var(--spacing-xs) 8px 0; /* More margin */
+    margin: 8px var(--spacing-xs) 8px 0;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: var(--shadow-md); /* Softer button shadow */
+    box-shadow: var(--shadow-md);
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -174,7 +193,7 @@ button {
 
 button:hover {
     background-color: var(--primary-dark);
-    transform: translateY(-3px); /* More pronounced lift */
+    transform: translateY(-3px);
     box-shadow: var(--shadow-lg);
 }
 
@@ -195,21 +214,21 @@ button.edit-btn:hover {
 /* Forms */
 .form-container {
     background-color: var(--bg-white);
-    padding: var(--spacing-lg); /* More padding */
-    border-radius: var(--border-radius-lg); /* Softer corners */
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-lg);
     border: 1px solid var(--border-color);
-    margin-bottom: var(--spacing-xl); /* More space below forms */
+    margin-bottom: var(--spacing-xl);
     box-shadow: var(--shadow-md);
 }
 
 .form-group {
-    margin-bottom: var(--spacing-md); /* More space between form groups */
+    margin-bottom: var(--spacing-md);
 }
 
 .form-group label {
     display: block;
     margin-bottom: var(--spacing-xs);
-    font-weight: 700; /* Bolder labels */
+    font-weight: 700;
     color: var(--text-primary);
     font-size: 1.05rem;
 }
@@ -221,7 +240,7 @@ button.edit-btn:hover {
 .form-group textarea,
 #global-search {
     width: 100%;
-    padding: 14px; /* Larger input fields */
+    padding: 14px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     box-sizing: border-box;
@@ -237,14 +256,14 @@ button.edit-btn:hover {
 .form-group textarea:focus,
 #global-search:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.3); /* More prominent focus ring */
+    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.3);
     outline: none;
     background-color: var(--bg-white);
 }
 
 .form-group input[type="checkbox"] {
-    margin-left: var(--spacing-sm); /* More space */
-    transform: scale(1.3); /* Larger checkbox */
+    margin-left: var(--spacing-sm);
+    transform: scale(1.3);
     cursor: pointer;
 }
 
@@ -264,7 +283,7 @@ datalist {
     background-color: var(--bg-white);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
-    padding: var(--spacing-md) var(--spacing-lg); /* More padding */
+    padding: var(--spacing-md) var(--spacing-lg);
     margin-bottom: var(--spacing-xs);
     display: flex;
     justify-content: space-between;
@@ -274,7 +293,7 @@ datalist {
 }
 
 .data-list li:hover {
-    transform: translateY(-3px); /* More pronounced lift */
+    transform: translateY(-3px);
     box-shadow: var(--shadow-md);
 }
 
@@ -284,8 +303,8 @@ datalist {
 }
 
 .data-list li button {
-    margin-left: var(--spacing-sm); /* More space */
-    padding: 10px 20px; /* Larger buttons */
+    margin-left: var(--spacing-sm);
+    padding: 10px 20px;
     font-size: 0.95rem;
 }
 
@@ -295,10 +314,10 @@ datalist {
     border: 1px solid var(--border-color);
     gap: 1px;
     background-color: var(--border-color);
-    margin-top: var(--spacing-xl); /* More space above grid */
-    border-radius: var(--border-radius-lg); /* Softer corners */
+    margin-top: var(--spacing-xl);
+    border-radius: var(--border-radius-lg);
     overflow: hidden;
-    box-shadow: var(--shadow-xl); /* Prominent shadow */
+    box-shadow: var(--shadow-xl);
 }
 
 .schedule-cell {
@@ -306,7 +325,7 @@ datalist {
     padding: var(--spacing-sm);
     text-align: center;
     border: 1px solid #f0f0f0;
-    min-height: 120px; /* Increased height */
+    min-height: 120px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -318,21 +337,21 @@ datalist {
 
 .schedule-cell.drag-over-ok {
     background-color: var(--success-light);
-    border: 3px solid var(--success-color); /* Thicker border */
-    box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.6); /* Stronger glow */
+    border: 3px solid var(--success-color);
+    box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.6);
 }
 
 .schedule-cell.drag-over-conflict {
     background-color: var(--error-light);
-    border: 3px solid var(--error-color); /* Thicker border */
-    box-shadow: inset 0 0 12px rgba(239, 68, 68, 0.6); /* Stronger glow */
+    border: 3px solid var(--error-color);
+    box-shadow: inset 0 0 12px rgba(239, 68, 68, 0.6);
 }
 
 
 .schedule-header {
-    background-color: var(--secondary-dark); /* Darker secondary for headers */
+    background-color: var(--secondary-dark);
     color: var(--text-light);
-    font-weight: 800; /* Extra bold */
+    font-weight: 800;
     font-size: 1.2rem;
     padding: var(--spacing-md) var(--spacing-sm);
     display: flex;
@@ -343,17 +362,17 @@ datalist {
 .course-item {
     background-color: var(--primary-color);
     color: var(--text-light);
-    padding: 10px; /* More padding */
-    margin: 5px 0; /* More margin */
+    padding: 10px;
+    margin: 5px 0;
     border-radius: var(--border-radius-sm);
     cursor: grab;
     font-size: 0.95rem;
-    width: calc(100% - 10px); /* Adjust width */
+    width: calc(100% - 10px);
     box-sizing: border-box;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
-    gap: 4px; /* More space */
+    gap: 4px;
     box-shadow: var(--shadow-sm);
     text-align: center;
 }
@@ -364,7 +383,7 @@ datalist {
 }
 .course-item span {
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.9); /* Slightly less transparent */
+    color: rgba(255, 255, 255, 0.9);
 }
 
 /* Color coding for different types or professors */
@@ -379,7 +398,7 @@ datalist {
 
 .course-item:hover {
     background-color: var(--primary-dark);
-    transform: translateY(-4px); /* More pronounced lift */
+    transform: translateY(-4px);
     box-shadow: var(--shadow-md);
 }
 
@@ -394,7 +413,7 @@ datalist {
 .conflict {
     background-color: var(--error-color) !important;
     border: 3px solid #D32F2F !important;
-    animation: pulse-red 1.2s infinite alternate; /* Faster pulse */
+    animation: pulse-red 1.2s infinite alternate;
 }
 
 @keyframes pulse-red {
@@ -460,31 +479,31 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: var(--spacing-xl);
-    box-shadow: var(--shadow-lg); /* More prominent table shadow */
+    box-shadow: var(--shadow-lg);
     border-radius: var(--border-radius-md);
     overflow: hidden;
 }
 
 table th, table td {
     border: 1px solid var(--border-color);
-    padding: 14px 18px; /* More padding */
+    padding: 14px 18px;
     text-align: right;
     font-size: 1rem;
 }
 
 table th {
-    background-color: var(--primary-dark); /* Primary dark for table headers */
+    background-color: var(--primary-dark);
     color: var(--text-light);
     font-weight: 700;
     font-size: 1.05rem;
 }
 
 table tr:nth-child(even) {
-    background-color: #F3F4F6; /* Lighter alternating row */
+    background-color: #F3F4F6;
 }
 
 table tr:hover {
-    background-color: #E5E7EB; /* Subtle hover effect */
+    background-color: #E5E7EB;
 }
 
 /* Professor Schedule Card */
@@ -499,7 +518,7 @@ table tr:hover {
 
 .professor-schedule-card h3 {
     color: var(--primary-color);
-    border-bottom: 2px dashed var(--border-color); /* Thicker dashed border */
+    border-bottom: 2px dashed var(--border-color);
     padding-bottom: var(--spacing-sm);
     margin-bottom: var(--spacing-md);
 }
@@ -513,7 +532,7 @@ table tr:hover {
     background-color: var(--success-light);
     padding: var(--spacing-md) var(--spacing-lg);
     border-radius: var(--border-radius-md);
-    margin-bottom: var(--spacing-xl); /* More space */
+    margin-bottom: var(--spacing-xl);
     border: 1px solid var(--success-color);
     text-align: center;
     box-shadow: var(--shadow-md);
@@ -545,7 +564,7 @@ table tr:hover {
 
 .evaluation-details-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Adjust min-width */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
 }
@@ -585,7 +604,7 @@ table tr:hover {
     margin-bottom: var(--spacing-md);
 }
 .chart-container canvas {
-    max-height: 450px; /* Slightly taller charts */
+    max-height: 450px;
     width: 100% !important;
     height: auto !important;
 }
@@ -595,11 +614,11 @@ footer {
     text-align: center;
     padding: var(--spacing-md);
     margin-top: var(--spacing-xl);
-    background-color: var(--primary-dark); /* Darker primary for footer */
+    background-color: var(--primary-dark);
     color: rgba(255, 255, 255, 0.9);
     border-top: 1px solid #444;
     font-size: 0.95rem;
-    box-shadow: 0 -5px 15px rgba(0,0,0,0.15); /* More pronounced shadow */
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.15);
 }
 
 /* Modal Styles */
@@ -612,18 +631,18 @@ footer {
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0,0,0,0.7); /* Darker overlay */
-    padding-top: 80px; /* More space from top */
+    background-color: rgba(0,0,0,0.7);
+    padding-top: 80px;
     animation: fadeInModal 0.3s ease-out forwards;
 }
 
 .modal-content {
     background-color: var(--bg-white);
-    margin: 4% auto; /* Slightly higher */
-    padding: var(--spacing-xl); /* More generous padding */
+    margin: 4% auto;
+    padding: var(--spacing-xl);
     border: 1px solid var(--border-color);
     width: 90%;
-    max-width: 700px; /* Slightly wider modal */
+    max-width: 700px;
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-xl);
     position: relative;
@@ -636,7 +655,7 @@ footer {
 }
 
 @keyframes slideInModal {
-    from { transform: translateY(-70px) scale(0.9); opacity: 0; } /* More pronounced slide */
+    from { transform: translateY(-70px) scale(0.9); opacity: 0; }
     to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
@@ -659,7 +678,7 @@ footer {
 .modal-content h3 {
     text-align: center;
     color: var(--primary-dark);
-    margin-bottom: var(--spacing-lg); /* More space */
+    margin-bottom: var(--spacing-lg);
     border-bottom: 2px solid var(--primary-light);
     padding-bottom: var(--spacing-xs);
 }
@@ -670,9 +689,9 @@ footer {
 }
 
 .modal-content button {
-    margin-top: var(--spacing-lg); /* More space */
+    margin-top: var(--spacing-lg);
     margin-left: 0;
-    margin-right: var(--spacing-sm); /* More space between buttons */
+    margin-right: var(--spacing-sm);
     padding: 12px 25px;
     font-size: 1.05rem;
 }
@@ -708,7 +727,7 @@ footer {
 
 .dashboard-card i {
     color: var(--primary-color);
-    font-size: 4rem; /* Larger icons */
+    font-size: 4rem;
     margin-bottom: var(--spacing-xs);
 }
 
