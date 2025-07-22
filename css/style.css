@@ -683,6 +683,11 @@ footer {
     padding-bottom: var(--spacing-xs);
 }
 
+.modal-content .form-group label {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
 .modal-content button {
     margin-top: var(--spacing-lg);
     margin-left: 0;
@@ -798,7 +803,7 @@ footer {
     nav ul li a {
         width: 90%;
         justify-content: center;
-        padding: 8px 12px;
+        padding: 8px 12px; /* تصغير الpadding */
         font-size: 0.8rem;
     }
 
