@@ -1,51 +1,900 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جداول الدكاترة - نظام إدارة الجداول الدراسية الذكي</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
-<body>
-    <header>
-        <h1>نظام إدارة الجداول الدراسية الذكي</h1>
-        <nav>
-            <ul>
-                <li><a href="index.html"><i class="fas fa-home"></i> الرئيسية</a></li>
-                <li><a href="data-entry.html"><i class="fas fa-database"></i> إدخال البيانات</a></li>
-                <li><a href="schedule-view.html"><i class="fas fa-calendar-alt"></i> عرض الجداول</a></li>
-                <li><a href="reports.html"><i class="fas fa-chart-bar"></i> التقارير والإحصائيات</a></li>
-                <li><a href="professor-schedules.html" class="active"><i class="fas fa-user-tie"></i> جداول الدكاترة</a></li>
-                <li><a href="settings.html"><i class="fas fa-cog"></i> الإعدادات والتصدير</a></li>
-            </ul>
-        </nav>
-    </header>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap');
+/* @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'); هذا السطر مكرر، يفضل إزالته لأنه موجود في index.html */
 
-    <main>
-        <section id="professor-schedules" class="active-section">
-            <h2>جداول الدكاترة</h2>
-            </section>
-    </main>
+:root {
+    /* New Professional Color Palette */
+    --primary-color: #4A90E2; /* A vibrant, modern blue */
+    --primary-dark: #357ABD;
+    --primary-light: #C7E0FF;
 
-    <footer>
-        <p>&copy; 2024 نظام إدارة الجداول الدراسية الذكي. جميع الحقوق محفوظة.</p>
-    </footer>
+    --secondary-color: #6D28D9; /* A deep, rich violet for accents */
+    --secondary-dark: #4C1D95;
+    --secondary-light: #DDD6FE;
 
-    <script type="module" src="js/constants.js"></script>
-    <script type="module" src="js/utils.js"></script>
-    <script type="module" src="js/dataManager.js"></script>
-    <script type="module" src="js/scheduler.js"></script>
-    <script type="module" src="js/uiManager.js"></script>
-    <script type="module">
-        // كود تهيئة خاص بهذه الصفحة (professor-schedules)
-        import { initializeAppPage } from './js/main.js'; // تم تعديل هذا السطر
-        initializeAppPage('professor-schedules'); // تمرير معرف القسم الحالي
-    </script>
-</body>
-</html>
+    --text-primary: #333333; /* Darker grey for primary text */
+    --text-secondary: #6B7280; /* Medium grey for secondary text */
+    --text-light: #ffffff; /* White for text on dark backgrounds */
+
+    --bg-light: #F9FAFB; /* Very light grey for subtle backgrounds */
+    --bg-white: #ffffff;
+
+    /* Semantic Colors */
+    --success-color: #10B981; /* Tailwind green */
+    --success-light: #D1FAE5;
+    --error-color: #EF4444; /* Tailwind red */
+    --error-light: #FEE2E2;
+    --warning-color: #F59E0B; /* Tailwind amber */
+    --warning-light: #FEF3C7;
+    --info-color: #3B82F6; /* Tailwind blue */
+    --info-light: #DBEAFE;
+
+    /* Shadows */
+    --shadow-sm: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+    --shadow-md: rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px -1px;
+    --shadow-lg: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+    --shadow-xl: rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.04) 0px 10px 10px -5px;
+
+    /* Borders */
+    --border-color: #E5E7EB; /* Lighter border */
+    --border-radius-sm: 6px;
+    --border-radius-md: 10px;
+    --border-radius-lg: 16px;
+
+    /* Spacing */
+    --spacing-xs: 8px;
+    --spacing-sm: 16px;
+    --spacing-md: 24px;
+    --spacing-lg: 32px;
+    --spacing-xl: 48px;
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-light);
+    color: var(--text-primary);
+    direction: rtl; /* For Arabic language support */
+    text-align: right;
+    line-height: 1.7; /* Slightly more spacious line-height */
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base Typography */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary-dark);
+    margin-top: 0;
+    margin-bottom: 1.2rem;
+    font-weight: 700; /* Bolder headings */
+    line-height: 1.3;
+}
+
+h1 { font-size: 3rem; margin-bottom: 1.5rem; }
+h2 { font-size: 2.4rem; border-bottom: 2px solid var(--primary-light); padding-bottom: 1rem; margin-bottom: 2.5rem; color: var(--secondary-dark); }
+h3 { font-size: 1.9rem; margin-bottom: 1.2rem; }
+p { margin-bottom: 1.2rem; color: var(--text-secondary); }
+
+/* Header & Navigation */
+header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: var(--text-light);
+    padding: var(--spacing-xs) 0; /* تم تصغير الpadding العلوي والسفلي */
+    text-align: center;
+    box-shadow: var(--shadow-xl); /* Stronger shadow for header */
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: all 0.3s ease-in-out; /* إضافة انتقال سلس للتأثيرات الجديدة */
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8rem; /* تم تصغير حجم الخط الافتراضي لـ h1 في الheader */
+    color: var(--text-light);
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.3); /* More pronounced text shadow */
+    margin-bottom: var(--spacing-xs); /* تقليل المسافة السفلية */
+    font-weight: 800;
+    transition: font-size 0.3s ease-in-out, margin 0.3s ease-in-out; /* انتقال سلس للحجم والمسافة */
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+nav ul li a {
+    color: var(--text-light);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 6px 14px; /* تم تصغير الpadding */
+    border-radius: var(--border-radius-md);
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease, padding 0.3s ease; /* إضافة padding للانتقال السلس */
+    display: flex;
+    align-items: center;
+    gap: 4px; /* تقليل المسافة للأيقونة */
+    font-size: 0.85rem; /* تم تصغير حجم الخط */
+}
+
+nav ul li a:hover,
+nav ul li a.active {
+    background-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px); /* تعديل طفيف */
+    box-shadow: var(--shadow-sm); /* ظل أخف */
+}
+
+/* حالة الشريط العلوي عند التمرير لأسفل */
+header.header-scrolled {
+    padding: 5px 0; /* تصغير الpadding أكثر */
+    box-shadow: var(--shadow-md); /* ظل أخف عند التقلص */
+}
+
+header.header-scrolled h1 {
+    font-size: 1.2rem; /* تصغير حجم الخط أكثر */
+    margin-bottom: 0;
+}
+
+header.header-scrolled nav ul li a {
+    padding: 3px 8px; /* تصغير الpadding أكثر */
+    font-size: 0.75rem; /* تصغير حجم الخط أكثر */
+}
+
+
+/* Main Content Area */
+main {
+    padding: var(--spacing-xl);
+    max-width: 1300px;
+    margin: var(--spacing-xl) auto;
+    background-color: var(--bg-white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border-color);
+}
+
+section {
+    /* display: none;  هذا الكلاس لم يعد يستخدم في هيكلية MPA الجديدة */
+    padding: var(--spacing-md) 0;
+    animation: fadeIn 0.8s ease-out;
+}
+
+section.active-section {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Buttons */
+button {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    border: none;
+    padding: 14px 30px;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 8px var(--spacing-xs) 8px 0;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: var(--shadow-md);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+
+button:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+button.delete-btn {
+    background-color: var(--error-color);
+}
+button.delete-btn:hover {
+    background-color: #D32F2F;
+}
+
+button.edit-btn {
+    background-color: var(--info-color);
+}
+button.edit-btn:hover {
+    background-color: #3476D2;
+}
+
+/* Forms */
+.form-container {
+    background-color: var(--bg-white);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-md);
+}
+
+.form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 1.05rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="file"],
+.form-group select,
+.form-group textarea,
+#global-search {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    box-sizing: border-box;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    background-color: var(--bg-light);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+#global-search:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.3);
+    outline: none;
+    background-color: var(--bg-white);
+}
+
+.form-group input[type="checkbox"] {
+    margin-left: var(--spacing-sm);
+    transform: scale(1.3);
+    cursor: pointer;
+}
+
+/* Datalist styling (basic, browser handles most) */
+datalist {
+    font-family: 'Cairo', sans-serif;
+    font-size: 0.95rem;
+}
+
+/* Lists (Professors, Rooms, Courses) */
+.data-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.data-list li {
+    background-color: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.data-list li:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.data-list li div:first-child {
+    flex-grow: 1;
+    padding-left: var(--spacing-sm);
+}
+
+.data-list li button {
+    margin-left: var(--spacing-sm);
+    padding: 10px 20px;
+    font-size: 0.95rem;
+}
+
+/* Schedule Grid */
+#schedule-grid {
+    display: grid;
+    border: 1px solid var(--border-color);
+    gap: 1px;
+    background-color: var(--border-color);
+    margin-top: var(--spacing-xl);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-xl);
+}
+
+.schedule-cell {
+    background-color: var(--bg-white);
+    padding: var(--spacing-sm);
+    text-align: center;
+    border: 1px solid #f0f0f0;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.schedule-cell.drag-over-ok {
+    background-color: var(--success-light);
+    border: 3px solid var(--success-color);
+    box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+.schedule-cell.drag-over-conflict {
+    background-color: var(--error-light);
+    border: 3px solid var(--error-color);
+    box-shadow: inset 0 0 12px rgba(239, 68, 68, 0.6);
+}
+
+
+.schedule-header {
+    background-color: var(--secondary-dark);
+    color: var(--text-light);
+    font-weight: 800;
+    font-size: 1.2rem;
+    padding: var(--spacing-md) var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.course-item {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: var(--border-radius-sm);
+    cursor: grab;
+    font-size: 0.95rem;
+    width: calc(100% - 10px);
+    box-sizing: border-box;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+
+.course-item strong {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+.course-item span {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Color coding for different types or professors */
+.course-item.lecture { background-color: var(--primary-color); }
+.course-item.lab { background-color: var(--secondary-color); }
+/* Example for professor-specific colors, applied via JS */
+.course-item.prof-p1 { background-color: #EF4444; } /* Red */
+.course-item.prof-p2 { background-color: #3B82F6; } /* Blue */
+.course-item.prof-p3 { background-color: #10B981; } /* Green */
+.course-item.prof-p4 { background-color: #F59E0B; } /* Amber */
+
+
+.course-item:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.course-item.dragging {
+    opacity: 0.7;
+    transform: scale(1.03);
+    box-shadow: var(--shadow-xl);
+    z-index: 10;
+}
+
+/* Conflict and Alerts */
+.conflict {
+    background-color: var(--error-color) !important;
+    border: 3px solid #D32F2F !important;
+    animation: pulse-red 1.2s infinite alternate;
+}
+
+@keyframes pulse-red {
+    0% { border-color: #D32F2F; box-shadow: 0 0 8px #D32F2F; }
+    100% { border-color: var(--error-color); box-shadow: 0 0 20px var(--error-color); }
+}
+
+#conflict-alerts {
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+    border-radius: var(--border-radius-md);
+    display: none;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+    text-align: right;
+    line-height: 1.5;
+}
+
+#conflict-alerts h4 {
+    color: inherit;
+    margin-top: 0;
+    margin-bottom: var(--spacing-sm);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+#conflict-alerts ul {
+    list-style: disc;
+    padding-right: var(--spacing-lg);
+    margin-top: var(--spacing-xs);
+    margin-bottom: 0;
+    font-weight: 400;
+    font-size: 1rem;
+}
+
+#conflict-alerts.alert-danger {
+    background-color: var(--error-light);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+
+#conflict-alerts.alert-success {
+    background-color: var(--success-light);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+#conflict-alerts.alert-info {
+    background-color: var(--info-light);
+    color: var(--info-color);
+    border: 1px solid var(--info-color);
+}
+
+#conflict-alerts.alert-warning {
+    background-color: var(--warning-light);
+    color: var(--warning-color);
+    border: 1px solid var(--warning-color);
+}
+
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+table th, table td {
+    border: 1px solid var(--border-color);
+    padding: 14px 18px;
+    text-align: right;
+    font-size: 1rem;
+}
+
+table th {
+    background-color: var(--primary-dark);
+    color: var(--text-light);
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+table tr:nth-child(even) {
+    background-color: #F3F4F6;
+}
+
+table tr:hover {
+    background-color: #E5E7EB;
+}
+
+/* Professor Schedule Card */
+.professor-schedule-card {
+    background-color: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.professor-schedule-card h3 {
+    color: var(--primary-color);
+    border-bottom: 2px dashed var(--border-color);
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.professor-schedule-card button {
+    margin-top: var(--spacing-md);
+}
+
+/* Reports Specific Styles */
+.evaluation-summary {
+    background-color: var(--success-light);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    margin-bottom: var(--spacing-xl);
+    border: 1px solid var(--success-color);
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+
+.evaluation-summary p {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.score-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 24px;
+    color: var(--text-light);
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-right: var(--spacing-xs);
+    min-width: 65px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.score-badge.high-score { background-color: var(--success-color); }
+.score-badge.medium-score { background-color: var(--warning-color); }
+.score-badge.low-score { background-color: var(--error-color); }
+
+.evaluation-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.evaluation-item {
+    background-color: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.evaluation-item strong {
+    color: var(--primary-dark);
+    font-size: 1.05rem;
+}
+
+.chart-note {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-sm);
+    font-style: italic;
+    text-align: center;
+}
+
+.chart-container {
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background-color: var(--bg-white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+}
+.chart-container h3 {
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing-md);
+}
+.chart-container canvas {
+    max-height: 450px;
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+    background-color: var(--primary-dark);
+    color: rgba(255, 255, 255, 0.9);
+    border-top: 1px solid #444;
+    font-size: 0.95rem;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.15);
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7);
+    padding-top: 80px;
+    animation: fadeInModal 0.3s ease-out forwards;
+}
+
+.modal-content {
+    background-color: var(--bg-white);
+    margin: 4% auto;
+    padding: var(--spacing-xl);
+    border: 1px solid var(--border-color);
+    width: 90%;
+    max-width: 700px;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+    position: relative;
+    animation: slideInModal 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInModal {
+    from { transform: translateY(-70px) scale(0.9); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.close-button {
+    color: var(--text-secondary);
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    font-size: 2.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: var(--primary-dark);
+}
+
+.modal-content h3 {
+    text-align: center;
+    color: var(--primary-dark);
+    margin-bottom: var(--spacing-lg);
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: var(--spacing-xs);
+}
+
+.modal-content button {
+    margin-top: var(--spacing-lg);
+    margin-left: 0;
+    margin-right: var(--spacing-sm);
+    padding: 12px 25px;
+    font-size: 1.05rem;
+}
+
+/* Dashboard Grid for Home Page */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+    text-align: center;
+}
+
+.dashboard-card {
+    background-color: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.dashboard-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl);
+}
+
+.dashboard-card i {
+    color: var(--primary-color);
+    font-size: 4rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.dashboard-card h3 {
+    font-size: 1.5rem;
+    color: var(--primary-dark);
+    margin-bottom: var(--spacing-xs);
+}
+
+.dashboard-card p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    main {
+        margin: var(--spacing-md) auto;
+        padding: var(--spacing-md);
+    }
+
+    nav ul {
+        gap: var(--spacing-sm);
+    }
+
+    nav ul li a {
+        padding: 8px 16px; /* تم تصغير الpadding */
+        font-size: 0.85rem; /* تم تصغير حجم الخط */
+        gap: 5px;
+    }
+
+    h1 { font-size: 2.2rem; } /* تصغير حجم ال h1 */
+    h2 { font-size: 1.8rem; padding-bottom: 0.8rem; margin-bottom: 1.8rem; }
+    h3 { font-size: 1.5rem; }
+
+    button {
+        padding: 10px 20px;
+        font-size: 0.95rem;
+        gap: 8px;
+    }
+
+    .evaluation-details-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .dashboard-grid {
+        gap: var(--spacing-md);
+    }
+    .dashboard-card {
+        padding: var(--spacing-md);
+    }
+    .dashboard-card i {
+        font-size: 3rem;
+    }
+}
+
+@media (max-width: 768px) {
+    header {
+        padding: var(--spacing-xs) 0; /* تصغير الpadding أكثر */
+    }
+
+    header h1 {
+        font-size: 1.6rem; /* تصغير حجم الخط أكثر */
+        margin-bottom: var(--spacing-xs);
+    }
+
+    nav ul {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+        align-items: center;
+    }
+    nav ul li a {
+        width: 90%;
+        justify-content: center;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+
+    main {
+        margin: var(--spacing-xs);
+        padding: var(--spacing-sm);
+    }
+
+    section {
+        padding: var(--spacing-sm) 0;
+    }
+
+    h2 {
+        font-size: 1.6rem;
+        margin-bottom: var(--spacing-md);
+    }
+
+    .form-container {
+        padding: var(--spacing-md);
+    }
+
+    .form-group label {
+        margin-bottom: 5px;
+        font-size: 0.95rem;
+    }
+
+    .form-group input, .form-group select, .form-group textarea, #global-search {
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+
+    .data-list li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .data-list li button {
+        width: 100%;
+        margin-top: var(--spacing-xs);
+        margin-left: 0;
+        padding: 6px 12px;
+    }
+
+    /* Adjust schedule grid for smaller screens (Vertical Layout) */
+    #schedule-grid {
+        display: block;
+        border: none;
+        background-color: transparent;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .schedule-header, .schedule-cell {
+        display: inline-block;
+        vertical-align: top;
+        width: 140px; /* Slightly narrower */
+        min-width: 140px;
+        height: 90px; /* Slightly shorter */
+        min-height: 90px;
+        border: 1px solid var(--border-color);
+        margin: 2px;
+        white-space: normal;
+        box-shadow: var(--shadow-sm);
+        border-radius: var(--border-radius-sm);
+    }
+
+    .schedule-header {
+        font-size: 0.85rem;
+    }
+
+    .course-item {
+        font-size: 0.7rem;
+        padding: 4px;
+        width: calc(100% - 8px);
+    }
+    .course-item strong { font-size: 0.85rem; }
+    .course-item span { font-size: 0.65rem; }
+
+    table th, table td {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+    }
+
+    .professor-schedule-card {
+        padding: var(--spacing-md);
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 2% auto;
+        padding: var(--spacing-md);
+    }
+    .modal-content button {
+        padding: 8px 18px;
+        font-size: 0.95rem;
+    }
+}
