@@ -31,6 +31,8 @@
         <section id="data-entry" class="active-section">
             <h2>إدارة وإدخال البيانات</h2>
 
+            <div id="conflict-alerts" class="alert" style="display: none;"></div>
+
             <div class="form-container">
                 <h3>إضافة دكتور جديد</h3>
                 <form id="professor-form">
@@ -169,7 +171,7 @@
     <script type="module" src="js/uiManager.js"></script>
     <script type="module">
         // كود تهيئة خاص بهذه الصفحة (data-entry)
-        import { initializeAppPage } from './js/main.js'; // تم تعديل هذا السطر
+        import { initializeAppPage } from './js/main.js';
         initializeAppPage('data-entry'); // تمرير معرف القسم الحالي
     </script>
 </body>
