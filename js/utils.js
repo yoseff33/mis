@@ -19,7 +19,6 @@ export const getDayName = (dayIndex) => {
  */
 export const parseTimeRange = (timeRange) => {
     if (typeof timeRange !== 'string' || !timeRange.includes('-')) {
-        // console.warn("Invalid time range string:", timeRange);
         return null; // Return null for invalid input
     }
     const [start, end] = timeRange.split('-');
@@ -33,12 +32,10 @@ export const parseTimeRange = (timeRange) => {
  */
 export const toMinutes = (timeStr) => {
     if (typeof timeStr !== 'string' || !timeStr.includes(':')) {
-        // console.warn("Invalid time string passed to toMinutes:", timeStr); // Use warn instead of error for less critical issues
-        return null; // Return null for invalid input
+        return null;
     }
     const parts = timeStr.split(':').map(Number);
     if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
-        // console.warn("Invalid time format in toMinutes:", timeStr);
         return null;
     }
     return parts[0] * 60 + parts[1];
@@ -59,7 +56,6 @@ export const isTimeConflict = (time1Start, time1End, time2Start, time2End) => {
     const t2e = toMinutes(time2End);
 
     if (t1s === null || t1e === null || t2s === null || t2e === null) {
-        // console.warn("Skipping time conflict check due to invalid time string.");
         return false;
     }
 
@@ -77,10 +73,13 @@ export const generateUniqueId = () => {
 // ======================================================
 // UI Related Utilities (مثل ShowAlert)
 // ======================================================
-// Note: conflictAlertsDiv سيتم استيراده من uiManager.js أو تمريره كمعامل
-let currentAlertDiv = null; // لتخزين عنصر div التنبيه
 
-// وظيفة لضبط عنصر div التنبيه بعد تحميل DOM
+let currentAlertDiv = null;
+
+/**
+ * Sets the alert container div element.
+ * @param {HTMLElement} divElement
+ */
 export const setAlertDiv = (divElement) => {
     currentAlertDiv = divElement;
 };
@@ -101,12 +100,14 @@ export const showAlert = (message, type = 'danger') => {
     if (window.alertTimeout) clearTimeout(window.alertTimeout);
     window.alertTimeout = setTimeout(() => {
         currentAlertDiv.style.display = 'none';
-    }, 8000); // Hide after 8 seconds
+    }, 8000);
 };
 
-// وظيفة لإعادة حساب الدقائق للفترات الزمنية
+/**
+ * Recalculates the time slots in minutes and fills TIME_SLOTS_MINUTES.
+ */
 export const calculateTimeSlotsMinutes = () => {
-    TIME_SLOTS_MINutes.splice(0, TIME_SLOTS_MINUTES.length); // إفراغ المصفوفة
+    TIME_SLOTS_MINUTES.splice(0, TIME_SLOTS_MINUTES.length); // إفراغ المصفوفة
     TIME_SLOTS.forEach(slot => {
         const parsed = parseTimeRange(slot);
         if (parsed) {
