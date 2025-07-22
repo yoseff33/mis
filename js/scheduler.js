@@ -306,7 +306,7 @@ export const optimizeScheduleForGaps = () => {
                 const timeA = parseTimeRange(a.timeRange);
                 const timeB = parseTimeRange(b.timeRange);
                 if (!timeA || !timeB) return 0;
-                return toMinutes(timeA.start) - toMinutes(timeB.start);
+                return toMinutes(timeA.start) - toMinutes(parseTimeRange(b.timeRange).start);
             });
 
             if (appointments.length > 1) {
