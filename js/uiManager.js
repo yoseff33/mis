@@ -693,6 +693,7 @@ export const renderProfessorSchedules = (professorSchedulesSectionElement) => {
                         <th>اليوم</th>
                         <th>الوقت</th>
                         <th>المادة</th>
+                        <th>الدكتور</th>
                         <th>القاعة/المعمل</th>
                         <th>القسم</th>
                         <th>ملاحظات</th>
