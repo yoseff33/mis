@@ -1,0 +1,858 @@
+begin;
+
+create or replace function public.generate_member_number()
+returns char(7)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  candidate char(7);
+begin
+  for attempt in 1..40 loop
+    candidate := (1000000 + floor(random() * 9000000))::bigint::text::char(7);
+    if not exists (select 1 from public.profiles where member_number = candidate) then
+      return candidate;
+    end if;
+  end loop;
+  raise exception using errcode = 'P0001', message = 'تعذر إنشاء رقم عضوية آمن، حاول مرة أخرى';
+end;
+$$;
+
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  customer_role_id uuid;
+begin
+  insert into public.profiles(id, member_number, full_name, phone, email)
+  values (
+    new.id,
+    public.generate_member_number(),
+    nullif(new.raw_user_meta_data->>'full_name', ''),
+    nullif(new.phone, ''),
+    nullif(new.email, '')
+  )
+  on conflict (id) do nothing;
+
+  select id into customer_role_id from public.roles where code = 'customer';
+  if customer_role_id is not null then
+    insert into public.user_roles(user_id, role_id)
+    values (new.id, customer_role_id)
+    on conflict do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_auth_user();
+
+create or replace function public.has_role(p_role_code text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.user_roles ur
+    join public.roles r on r.id = ur.role_id
+    where ur.user_id = auth.uid()
+      and ur.deleted_at is null
+      and r.code = p_role_code
+  );
+$$;
+
+create or replace function public.has_branch_access(p_branch_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select public.has_role('super_admin') or exists (
+    select 1
+    from public.branch_staff bs
+    where bs.user_id = auth.uid()
+      and bs.branch_id = p_branch_id
+      and bs.is_active
+      and (bs.ended_at is null or bs.ended_at >= current_date)
+  );
+$$;
+
+create or replace function public.has_permission(p_permission text, p_branch_id uuid default null)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.user_roles ur
+    join public.role_permissions rp on rp.role_id = ur.role_id
+    join public.permissions p on p.id = rp.permission_id
+    where ur.user_id = auth.uid()
+      and ur.deleted_at is null
+      and p.code = p_permission
+      and (
+        p_branch_id is null
+        or public.has_role('super_admin')
+        or ur.branch_id = p_branch_id
+        or public.has_branch_access(p_branch_id)
+      )
+  );
+$$;
+
+create or replace function public.current_role_codes()
+returns text[]
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(array_agg(distinct r.code), '{}'::text[])
+  from public.user_roles ur
+  join public.roles r on r.id = ur.role_id
+  where ur.user_id = auth.uid() and ur.deleted_at is null;
+$$;
+
+create or replace function public.can_transition_order(p_from text, p_to text)
+returns boolean
+language sql
+immutable
+as $$
+  select (p_from, p_to) in (
+    ('pending_payment','paid'),
+    ('pending_payment','payment_failed'),
+    ('pending_payment','cancelled'),
+    ('payment_failed','pending_payment'),
+    ('payment_failed','cancelled'),
+    ('paid','confirmed'),
+    ('confirmed','preparing'),
+    ('confirmed','cancelled'),
+    ('preparing','ready'),
+    ('preparing','cancelled'),
+    ('ready','out_for_delivery'),
+    ('ready','delivered'),
+    ('out_for_delivery','delivered'),
+    ('delivered','partially_refunded'),
+    ('delivered','refunded'),
+    ('partially_refunded','refunded')
+  );
+$$;
+
+create or replace function public.transition_order(
+  p_order_id uuid,
+  p_to_status text,
+  p_reason text default null
+)
+returns public.orders
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_order public.orders;
+  actor uuid := auth.uid();
+begin
+  select * into current_order from public.orders where id = p_order_id for update;
+  if current_order.id is null then
+    raise exception using errcode = 'P0002', message = 'الطلب غير موجود';
+  end if;
+
+  if not (
+    actor = current_order.customer_id and p_to_status = 'cancelled' and current_order.status in ('pending_payment','payment_failed','confirmed')
+    or public.has_permission('orders.manage', current_order.branch_id)
+    or public.has_permission('orders.prepare', current_order.branch_id) and p_to_status in ('preparing','ready')
+    or public.has_permission('orders.deliver', current_order.branch_id) and p_to_status in ('out_for_delivery','delivered')
+  ) then
+    raise exception using errcode = '42501', message = 'ليس لديك صلاحية لتغيير حالة الطلب';
+  end if;
+
+  if not public.can_transition_order(current_order.status, p_to_status) then
+    raise exception using errcode = 'P0001', message = 'انتقال حالة الطلب غير مسموح';
+  end if;
+
+  if p_to_status = 'delivered'
+     and current_order.payment_method <> 'cash'
+     and not exists (
+       select 1 from public.payments p
+       where p.order_id = current_order.id and p.status = 'paid'
+     ) then
+    raise exception using errcode = 'P0001', message = 'لا يمكن تسليم طلب إلكتروني قبل تأكيد الدفع';
+  end if;
+
+  update public.orders
+  set status = p_to_status,
+      delivered_at = case when p_to_status = 'delivered' then timezone('utc', now()) else delivered_at end,
+      cancellation_reason = case when p_to_status = 'cancelled' then p_reason else cancellation_reason end
+  where id = p_order_id
+  returning * into current_order;
+
+  insert into public.order_status_history(order_id, from_status, to_status, changed_by, reason)
+  values (p_order_id, (select from_status from (
+    select osh.to_status as from_status
+    from public.order_status_history osh
+    where osh.order_id = p_order_id
+    order by osh.created_at desc limit 1
+  ) s), p_to_status, actor, p_reason);
+
+  return current_order;
+end;
+$$;
+
+create or replace function public.validate_coupon_amount(
+  p_code text,
+  p_customer_id uuid,
+  p_branch_id uuid,
+  p_subtotal numeric
+)
+returns table(coupon_id uuid, discount numeric)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  c public.coupons;
+  prior_orders integer;
+  prior_uses integer;
+  total_uses integer;
+begin
+  if nullif(trim(p_code), '') is null then
+    return query select null::uuid, 0::numeric;
+    return;
+  end if;
+
+  select * into c
+  from public.coupons
+  where upper(code) = upper(trim(p_code))
+    and status = 'active'
+    and deleted_at is null
+  for update;
+
+  if c.id is null
+     or (c.branch_id is not null and c.branch_id <> p_branch_id)
+     or (c.customer_id is not null and c.customer_id <> p_customer_id)
+     or (c.starts_at is not null and c.starts_at > now())
+     or (c.ends_at is not null and c.ends_at < now())
+     or p_subtotal < c.minimum_order then
+    raise exception using errcode = 'P0001', message = 'الكوبون غير صالح لهذا الطلب';
+  end if;
+
+  select count(*) into prior_uses from public.coupon_redemptions
+  where customer_id = p_customer_id and coupon_id = c.id;
+  select count(*) into total_uses from public.coupon_redemptions where coupon_id = c.id;
+  if prior_uses >= c.usage_limit_per_customer
+     or (c.usage_limit is not null and total_uses >= c.usage_limit) then
+    raise exception using errcode = 'P0001', message = 'تم بلوغ حد استخدام الكوبون';
+  end if;
+
+  if c.discount_type = 'first_order' then
+    select count(*) into prior_orders
+    from public.orders
+    where customer_id = p_customer_id and status not in ('cancelled','payment_failed');
+    if prior_orders > 0 then
+      raise exception using errcode = 'P0001', message = 'الكوبون مخصص لأول طلب';
+    end if;
+  end if;
+
+  return query
+  select c.id,
+    least(
+      p_subtotal,
+      coalesce(c.max_discount, p_subtotal),
+      case
+        when c.discount_type in ('percentage','first_order','category')
+          then round(p_subtotal * c.discount_value / 100, 2)
+        when c.discount_type = 'fixed' then c.discount_value
+        else 0
+      end
+    );
+end;
+$$;
+
+create or replace function public.create_order_atomic(
+  p_payload jsonb,
+  p_idempotency_key text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  customer uuid := auth.uid();
+  branch uuid := (p_payload->>'branch_id')::uuid;
+  new_order public.orders;
+  existing_order public.orders;
+  item jsonb;
+  product_row record;
+  option_row record;
+  order_item_id uuid;
+  qty integer;
+  unit_price numeric(12,2);
+  option_total numeric(12,2);
+  line_total numeric(12,2);
+  subtotal_value numeric(12,2) := 0;
+  discount_value numeric(12,2) := 0;
+  tax_rate_value numeric(6,4) := 0.15;
+  tax_value numeric(12,2);
+  service_fee_value numeric(12,2) := 0;
+  coupon_result record;
+  reward_value numeric(12,2) := 0;
+  order_no text;
+begin
+  if customer is null then
+    raise exception using errcode = '42501', message = 'يجب تسجيل الدخول لإتمام الطلب';
+  end if;
+  if p_idempotency_key is null or length(p_idempotency_key) < 12 then
+    raise exception using errcode = '22023', message = 'مفتاح منع التكرار غير صالح';
+  end if;
+
+  select * into existing_order from public.orders where idempotency_key = p_idempotency_key;
+  if existing_order.id is not null then
+    if existing_order.customer_id <> customer then
+      raise exception using errcode = '42501', message = 'مفتاح الطلب مستخدم';
+    end if;
+    return jsonb_build_object(
+      'order_id', existing_order.id,
+      'order_number', existing_order.order_number,
+      'total', existing_order.total,
+      'status', existing_order.status,
+      'replayed', true
+    );
+  end if;
+
+  if not exists (
+    select 1 from public.branches b
+    where b.id = branch and b.accepting_orders and b.status = 'active' and b.deleted_at is null
+  ) then
+    raise exception using errcode = 'P0001', message = 'الفرع لا يستقبل الطلبات حاليًا';
+  end if;
+
+  if jsonb_typeof(p_payload->'items') <> 'array'
+     or jsonb_array_length(p_payload->'items') = 0
+     or jsonb_array_length(p_payload->'items') > 50 then
+    raise exception using errcode = '22023', message = 'السلة فارغة أو تتجاوز الحد المسموح';
+  end if;
+
+  for item in select value from jsonb_array_elements(p_payload->'items')
+  loop
+    qty := coalesce((item->>'quantity')::integer, 0);
+    if qty < 1 or qty > 20 then
+      raise exception using errcode = '22023', message = 'كمية المنتج غير صالحة';
+    end if;
+
+    select
+      p.id, p.name_ar, p.sku,
+      coalesce(pba.price_override, p.base_price) as price,
+      coalesce(pba.stock_quantity, 0) as stock_quantity,
+      p.track_stock
+    into product_row
+    from public.products p
+    join public.product_branch_availability pba
+      on pba.product_id = p.id and pba.branch_id = branch and pba.is_available
+    where p.id = (item->>'product_id')::uuid
+      and p.status = 'active'
+      and p.deleted_at is null
+      and (p.available_from is null or p.available_from <= now())
+      and (p.available_until is null or p.available_until >= now())
+    for update of pba;
+
+    if product_row.id is null then
+      raise exception using errcode = 'P0001', message = 'أحد المنتجات غير متاح في الفرع';
+    end if;
+    if product_row.track_stock and product_row.stock_quantity < qty then
+      raise exception using errcode = 'P0001', message = 'الكمية المطلوبة غير متاحة';
+    end if;
+
+    select coalesce(sum(pov.price_delta), 0)
+    into option_total
+    from jsonb_array_elements_text(coalesce(item->'option_value_ids', '[]'::jsonb)) ov(id)
+    join public.product_option_values pov on pov.id = ov.id::uuid and pov.status = 'active'
+    join public.product_options po on po.id = pov.option_id and po.status = 'active'
+    join public.product_option_groups pog on pog.id = po.group_id and pog.product_id = product_row.id;
+
+    unit_price := product_row.price;
+    line_total := round((unit_price + option_total) * qty, 2);
+    subtotal_value := subtotal_value + line_total;
+  end loop;
+
+  select coalesce(bs.tax_rate, 0.15), coalesce(bs.service_fee, 0)
+  into tax_rate_value, service_fee_value
+  from public.branch_settings bs where bs.branch_id = branch;
+
+  if nullif(p_payload->>'coupon_code', '') is not null then
+    select * into coupon_result
+    from public.validate_coupon_amount(
+      p_payload->>'coupon_code', customer, branch, subtotal_value
+    );
+    discount_value := coalesce(coupon_result.discount, 0);
+  end if;
+
+  if nullif(p_payload->>'reward_id', '') is not null then
+    select least(lr.max_value, greatest(subtotal_value - discount_value, 0))
+    into reward_value
+    from public.loyalty_rewards lr
+    where lr.id = (p_payload->>'reward_id')::uuid
+      and lr.customer_id = customer
+      and lr.status = 'available'
+      and (lr.expires_at is null or lr.expires_at > now())
+    for update;
+    if reward_value is null then
+      raise exception using errcode = 'P0001', message = 'المكافأة غير متاحة';
+    end if;
+  end if;
+
+  discount_value := discount_value + coalesce(reward_value, 0);
+  tax_value := round(greatest(subtotal_value - discount_value, 0) * tax_rate_value, 2);
+  order_no := 'C' || to_char(now(), 'YYMMDD') || '-' || lpad(nextval('public.order_reference_seq')::text, 5, '0');
+
+  insert into public.orders(
+    order_number, customer_id, branch_id, parking_spot_id, vehicle_id,
+    fulfillment_type, status, subtotal, discount_total, tax_total, service_fee,
+    total, payment_method, coupon_id, reward_id, customer_note, idempotency_key
+  ) values (
+    order_no, customer, branch,
+    nullif(p_payload->>'parking_spot_id', '')::uuid,
+    nullif(p_payload->>'vehicle_id', '')::uuid,
+    p_payload->>'fulfillment_type',
+    case when p_payload->>'payment_method' = 'cash' then 'confirmed' else 'pending_payment' end,
+    subtotal_value, discount_value, tax_value, service_fee_value,
+    greatest(subtotal_value - discount_value, 0) + tax_value + service_fee_value,
+    p_payload->>'payment_method', coupon_result.coupon_id,
+    nullif(p_payload->>'reward_id', '')::uuid,
+    left(nullif(p_payload->>'customer_note', ''), 1000),
+    p_idempotency_key
+  ) returning * into new_order;
+
+  for item in select value from jsonb_array_elements(p_payload->'items')
+  loop
+    qty := (item->>'quantity')::integer;
+    select
+      p.id, p.name_ar, p.sku, coalesce(pba.price_override, p.base_price) as price
+    into product_row
+    from public.products p
+    join public.product_branch_availability pba
+      on pba.product_id = p.id and pba.branch_id = branch
+    where p.id = (item->>'product_id')::uuid;
+
+    select coalesce(sum(pov.price_delta), 0)
+    into option_total
+    from jsonb_array_elements_text(coalesce(item->'option_value_ids', '[]'::jsonb)) ov(id)
+    join public.product_option_values pov on pov.id = ov.id::uuid
+    join public.product_options po on po.id = pov.option_id
+    join public.product_option_groups pog on pog.id = po.group_id and pog.product_id = product_row.id;
+
+    insert into public.order_items(
+      order_id, product_id, product_name_ar, sku, quantity, unit_price,
+      options_total, line_total, customer_note
+    ) values (
+      new_order.id, product_row.id, product_row.name_ar, product_row.sku, qty,
+      product_row.price, option_total, round((product_row.price + option_total) * qty, 2),
+      left(nullif(item->>'note', ''), 500)
+    ) returning id into order_item_id;
+
+    for option_row in
+      select pov.id, pov.name_ar, pov.price_delta
+      from jsonb_array_elements_text(coalesce(item->'option_value_ids', '[]'::jsonb)) ov(id)
+      join public.product_option_values pov on pov.id = ov.id::uuid
+      join public.product_options po on po.id = pov.option_id
+      join public.product_option_groups pog on pog.id = po.group_id and pog.product_id = product_row.id
+    loop
+      insert into public.order_item_options(order_item_id, option_value_id, name_ar, price_delta)
+      values (order_item_id, option_row.id, option_row.name_ar, option_row.price_delta);
+    end loop;
+
+    update public.product_branch_availability
+    set stock_quantity = stock_quantity - qty
+    where product_id = product_row.id and branch_id = branch and stock_quantity is not null;
+  end loop;
+
+  insert into public.order_status_history(order_id, from_status, to_status, changed_by)
+  values (new_order.id, null, new_order.status, customer);
+
+  if coupon_result.coupon_id is not null then
+    insert into public.coupon_redemptions(coupon_id, customer_id, order_id, discount_amount)
+    values (coupon_result.coupon_id, customer, new_order.id, coupon_result.discount);
+  end if;
+
+  if new_order.reward_id is not null then
+    update public.loyalty_rewards set status = 'reserved' where id = new_order.reward_id;
+    insert into public.reward_redemptions(reward_id, order_id, customer_id, amount_applied, idempotency_key)
+    values (new_order.reward_id, new_order.id, customer, reward_value, p_idempotency_key || ':reward');
+  end if;
+
+  return jsonb_build_object(
+    'order_id', new_order.id,
+    'order_number', new_order.order_number,
+    'subtotal', new_order.subtotal,
+    'discount_total', new_order.discount_total,
+    'tax_total', new_order.tax_total,
+    'total', new_order.total,
+    'status', new_order.status,
+    'replayed', false
+  );
+end;
+$$;
+
+create or replace function public.process_loyalty_for_order(p_order_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  o public.orders;
+  program public.loyalty_programs;
+  account public.loyalty_accounts;
+  tx public.loyalty_transactions;
+  before_balance integer;
+  after_balance integer;
+begin
+  select * into o from public.orders where id = p_order_id for update;
+  if o.id is null or o.status <> 'delivered' then
+    raise exception using errcode = 'P0001', message = 'لا يمكن احتساب الولاء قبل تسليم الطلب';
+  end if;
+  if exists (
+    select 1 from public.loyalty_transactions
+    where order_id = o.id and type = 'cup_earned'
+  ) then
+    return jsonb_build_object('awarded', false, 'reason', 'already_processed');
+  end if;
+  if o.total < 0 or greatest(o.subtotal - o.discount_total, 0) <= 0 then
+    return jsonb_build_object('awarded', false, 'reason', 'fully_free');
+  end if;
+
+  select lp.* into program
+  from public.loyalty_programs lp
+  left join public.branch_settings bs on bs.loyalty_program_id = lp.id and bs.branch_id = o.branch_id
+  where lp.status = 'active' and (lp.branch_id = o.branch_id or lp.branch_id is null)
+  order by (lp.branch_id = o.branch_id) desc
+  limit 1;
+
+  if program.id is null or greatest(o.subtotal - o.discount_total, 0) < program.minimum_spend then
+    return jsonb_build_object('awarded', false, 'reason', 'below_minimum');
+  end if;
+
+  insert into public.loyalty_accounts(customer_id, program_id)
+  values (o.customer_id, program.id)
+  on conflict (customer_id, program_id) do update set updated_at = now()
+  returning * into account;
+
+  select * into account from public.loyalty_accounts where id = account.id for update;
+  before_balance := account.cup_balance;
+  after_balance := before_balance + 1;
+
+  update public.loyalty_accounts
+  set cup_balance = case
+      when after_balance >= program.required_cups then after_balance - program.required_cups
+      else after_balance
+    end,
+    lifetime_cups = lifetime_cups + 1
+  where id = account.id
+  returning cup_balance into after_balance;
+
+  insert into public.loyalty_transactions(
+    account_id, customer_id, branch_id, order_id, type, cups_delta,
+    balance_before, balance_after, reason, source
+  ) values (
+    account.id, o.customer_id, o.branch_id, o.id, 'cup_earned', 1,
+    before_balance, after_balance, 'طلب مؤهل مكتمل', 'order'
+  ) returning * into tx;
+
+  if before_balance + 1 >= program.required_cups then
+    insert into public.loyalty_rewards(
+      account_id, customer_id, source_transaction_id, max_value, expires_at
+    ) values (
+      account.id, o.customer_id, tx.id, program.reward_max_value,
+      timezone('utc', now()) + make_interval(days => program.reward_expire_days)
+    );
+  end if;
+
+  return jsonb_build_object('awarded', true, 'balance', after_balance);
+end;
+$$;
+
+create or replace function public.reverse_loyalty_for_order(p_order_id uuid, p_reason text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  earned public.loyalty_transactions;
+  account public.loyalty_accounts;
+  before_balance integer;
+begin
+  select * into earned from public.loyalty_transactions
+  where order_id = p_order_id and type = 'cup_earned'
+  for update;
+  if earned.id is null or exists (
+    select 1 from public.loyalty_transactions
+    where order_id = p_order_id and type = 'cup_reversed'
+  ) then
+    return false;
+  end if;
+
+  select * into account from public.loyalty_accounts where id = earned.account_id for update;
+  before_balance := account.cup_balance;
+  update public.loyalty_accounts
+  set cup_balance = greatest(cup_balance - 1, 0)
+  where id = account.id;
+
+  insert into public.loyalty_transactions(
+    account_id, customer_id, branch_id, order_id, type, cups_delta,
+    balance_before, balance_after, actor_id, reason, source
+  ) values (
+    account.id, earned.customer_id, earned.branch_id, p_order_id, 'cup_reversed', -1,
+    before_balance, greatest(before_balance - 1, 0), auth.uid(), p_reason, 'refund'
+  );
+
+  update public.loyalty_rewards
+  set status = 'cancelled'
+  where source_transaction_id = earned.id and status = 'available';
+  return true;
+end;
+$$;
+
+create or replace function public.on_order_delivered_loyalty()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'delivered' and old.status is distinct from new.status then
+    perform public.process_loyalty_for_order(new.id);
+    if new.reward_id is not null then
+      update public.loyalty_rewards set status = 'redeemed', redeemed_at = now()
+      where id = new.reward_id and status = 'reserved';
+    end if;
+  elsif new.status in ('refunded','cancelled') and old.status is distinct from new.status then
+    perform public.reverse_loyalty_for_order(new.id, coalesce(new.cancellation_reason, 'إلغاء أو استرجاع الطلب'));
+    if new.reward_id is not null then
+      update public.loyalty_rewards
+      set status = case when new.status = 'cancelled' then 'available' else status end
+      where id = new.reward_id and status = 'reserved';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger orders_loyalty_after_status
+after update of status on public.orders
+for each row execute function public.on_order_delivered_loyalty();
+
+create or replace function public.record_audit_event(
+  p_action text,
+  p_table_name text,
+  p_record_id uuid,
+  p_branch_id uuid default null,
+  p_old_data jsonb default null,
+  p_new_data jsonb default null,
+  p_reason text default null,
+  p_ip inet default null,
+  p_user_agent text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  result uuid;
+begin
+  insert into public.audit_logs(
+    actor_id, action, table_name, record_id, branch_id, old_data, new_data,
+    reason, ip_address, user_agent
+  ) values (
+    auth.uid(), p_action, p_table_name, p_record_id, p_branch_id, p_old_data,
+    p_new_data, p_reason, p_ip, p_user_agent
+  ) returning id into result;
+  return result;
+end;
+$$;
+
+create or replace function public.validate_card_elements(
+  p_elements jsonb,
+  p_canvas_width numeric,
+  p_canvas_height numeric,
+  p_max_elements integer default 30
+)
+returns jsonb
+language plpgsql
+immutable
+as $$
+declare
+  element jsonb;
+  x numeric;
+  y numeric;
+  w numeric;
+  h numeric;
+  protected jsonb := jsonb_build_array(
+    jsonb_build_object('x', 0.65, 'y', 0.05, 'w', 0.30, 'h', 0.42, 'name', 'QR'),
+    jsonb_build_object('x', 0.05, 'y', 0.05, 'w', 0.55, 'h', 0.20, 'name', 'بيانات العضوية'),
+    jsonb_build_object('x', 0.05, 'y', 0.64, 'w', 0.90, 'h', 0.30, 'name', 'أكواب الولاء')
+  );
+  zone jsonb;
+begin
+  if jsonb_typeof(p_elements) <> 'array' then
+    return jsonb_build_object('valid', false, 'message', 'صيغة عناصر التصميم غير صالحة');
+  end if;
+  if jsonb_array_length(p_elements) > p_max_elements then
+    return jsonb_build_object('valid', false, 'message', 'تجاوز التصميم الحد الأقصى للعناصر');
+  end if;
+
+  for element in select value from jsonb_array_elements(p_elements)
+  loop
+    x := coalesce((element->>'x')::numeric, -1) / p_canvas_width;
+    y := coalesce((element->>'y')::numeric, -1) / p_canvas_height;
+    w := coalesce((element->>'width')::numeric, 0)
+      * abs(coalesce((element->>'scale_x')::numeric, 1)) / p_canvas_width;
+    h := coalesce((element->>'height')::numeric, 0)
+      * abs(coalesce((element->>'scale_y')::numeric, 1)) / p_canvas_height;
+    if x < 0 or y < 0 or x + w > 1 or y + h > 1 or w <= 0 or h <= 0 then
+      return jsonb_build_object('valid', false, 'message', 'يوجد عنصر خارج حدود البطاقة');
+    end if;
+    for zone in select value from jsonb_array_elements(protected)
+    loop
+      if x < (zone->>'x')::numeric + (zone->>'w')::numeric
+         and x + w > (zone->>'x')::numeric
+         and y < (zone->>'y')::numeric + (zone->>'h')::numeric
+         and y + h > (zone->>'y')::numeric then
+        return jsonb_build_object(
+          'valid', false,
+          'message', 'لا يمكن تغطية المنطقة المحمية: ' || (zone->>'name')
+        );
+      end if;
+    end loop;
+  end loop;
+  return jsonb_build_object('valid', true);
+end;
+$$;
+
+create or replace function public.save_card_design_version(
+  p_design_id uuid,
+  p_name text,
+  p_canvas_width integer,
+  p_canvas_height integer,
+  p_elements jsonb,
+  p_background jsonb,
+  p_make_active boolean default true
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  customer uuid := auth.uid();
+  v_design_id uuid := p_design_id;
+  version_no integer;
+  version_id uuid;
+  validation jsonb;
+  max_elements integer := 30;
+begin
+  if customer is null then
+    raise exception using errcode = '42501', message = 'يجب تسجيل الدخول';
+  end if;
+  select coalesce((value->>'max_card_elements')::integer, 30)
+  into max_elements
+  from public.system_settings where key = 'sticker_settings' and branch_id is null;
+  max_elements := coalesce(max_elements, 30);
+  validation := public.validate_card_elements(
+    p_elements, p_canvas_width, p_canvas_height, max_elements
+  );
+  if not coalesce((validation->>'valid')::boolean, false) then
+    raise exception using errcode = 'P0001', message = validation->>'message';
+  end if;
+
+  if v_design_id is null then
+    insert into public.card_designs(customer_id, name, is_active)
+    values (customer, coalesce(nullif(trim(p_name), ''), 'تصميمي'), p_make_active)
+    returning id into v_design_id;
+  elsif not exists (
+    select 1 from public.card_designs where id = v_design_id and customer_id = customer and deleted_at is null
+  ) then
+    raise exception using errcode = '42501', message = 'لا تملك هذا التصميم';
+  end if;
+
+  select coalesce(max(version_number), 0) + 1 into version_no
+  from public.card_design_versions where design_id = v_design_id;
+
+  insert into public.card_design_versions(
+    design_id, version_number, canvas_width, canvas_height, elements,
+    background, validation_result, created_by
+  ) values (
+    v_design_id, version_no, p_canvas_width, p_canvas_height, p_elements,
+    p_background, validation, customer
+  ) returning id into version_id;
+
+  update public.card_designs
+  set active_version_id = version_id,
+      is_active = p_make_active,
+      name = coalesce(nullif(trim(p_name), ''), name)
+  where id = v_design_id;
+
+  if p_make_active then
+    update public.card_designs set is_active = false
+    where customer_id = customer and id <> v_design_id;
+  end if;
+
+  return jsonb_build_object('design_id', v_design_id, 'version_id', version_id, 'version_number', version_no);
+end;
+$$;
+
+create or replace function public.dashboard_metrics(
+  p_branch_id uuid default null,
+  p_from timestamptz default date_trunc('day', now()),
+  p_to timestamptz default now()
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  result jsonb;
+begin
+  if not public.has_permission('reports.read', p_branch_id) then
+    raise exception using errcode = '42501', message = 'ليس لديك صلاحية لعرض التقارير';
+  end if;
+  select jsonb_build_object(
+    'sales', coalesce(sum(total) filter (where status in ('delivered','partially_refunded')), 0),
+    'orders', count(*),
+    'average_order_value', coalesce(avg(total), 0),
+    'cancelled_orders', count(*) filter (where status = 'cancelled'),
+    'online_payments', count(*) filter (where payment_method = 'online'),
+    'cash_payments', count(*) filter (where payment_method = 'cash'),
+    'new_customers', count(distinct customer_id)
+  ) into result
+  from public.orders
+  where created_at between p_from and p_to
+    and (p_branch_id is null or branch_id = p_branch_id)
+    and (p_branch_id is null or public.has_branch_access(branch_id));
+  return result;
+end;
+$$;
+
+revoke all on function public.generate_member_number() from public;
+revoke all on function public.process_loyalty_for_order(uuid) from public;
+revoke all on function public.reverse_loyalty_for_order(uuid, text) from public;
+grant execute on function public.create_order_atomic(jsonb, text) to authenticated;
+grant execute on function public.transition_order(uuid, text, text) to authenticated;
+grant execute on function public.save_card_design_version(uuid, text, integer, integer, jsonb, jsonb, boolean) to authenticated;
+grant execute on function public.dashboard_metrics(uuid, timestamptz, timestamptz) to authenticated;
+grant execute on function public.current_role_codes() to authenticated;
+
+commit;

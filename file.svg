@@ -1,0 +1,78 @@
+export type Profile = {
+  id: string;
+  member_number: string | null;
+  full_name: string | null;
+  phone: string | null;
+  preferred_branch_id: string | null;
+  status: "active" | "suspended" | "deleted";
+};
+
+export type Branch = {
+  id: string;
+  name_ar: string;
+  address: string;
+  accepting_orders: boolean;
+  expected_prep_minutes: number;
+  status: string;
+};
+
+export type Category = {
+  id: string;
+  name_ar: string;
+  slug: string;
+};
+
+export type Product = {
+  id: string;
+  category_id: string;
+  name_ar: string;
+  description_ar: string | null;
+  image_path: string | null;
+  base_price: number;
+  prep_minutes: number;
+  product_branch_availability?: Array<{
+    branch_id: string;
+    price_override: number | null;
+    is_available: boolean;
+  }>;
+};
+
+export type CartItem = {
+  key: string;
+  product_id: string;
+  name_ar: string;
+  display_price: number;
+  quantity: number;
+  note?: string;
+  option_value_ids: string[];
+};
+
+export type Order = {
+  id: string;
+  order_number: string;
+  branch_id: string;
+  status: string;
+  fulfillment_type: string;
+  payment_method: string;
+  total: number;
+  created_at: string;
+  arrival_confirmed_at: string | null;
+  customer_id?: string;
+  customer_note?: string | null;
+  parking_spot_id?: string | null;
+};
+
+export const orderStatusAr: Record<string, string> = {
+  pending_payment: "بانتظار الدفع",
+  payment_failed: "فشل الدفع",
+  paid: "مدفوع",
+  confirmed: "مؤكد",
+  preparing: "قيد التحضير",
+  ready: "جاهز",
+  out_for_delivery: "في الطريق للسيارة",
+  delivered: "تم التسليم",
+  cancelled: "ملغي",
+  refunded: "مسترجع",
+  partially_refunded: "استرجاع جزئي",
+};
+
