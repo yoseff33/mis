@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#123a63">
+  <meta name="description" content="منشئ فواتير مؤسسة يوسف عيد المطيري لقطع غيار السيارات">
+  <title>منشئ الفواتير | مؤسسة يوسف عيد المطيري لقطع غيار السيارات</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="site-header no-print">
+    <div class="header-inner">
+      <div class="brand-mark" aria-hidden="true">🚘</div>
+      <div class="brand-copy">
+        <h1>مؤسسة يوسف عيد المطيري لقطع غيار السيارات</h1>
+        <p>منشئ الفواتير</p>
+      </div>
+      <button class="btn btn-ghost" id="historyBtn" type="button">المحفوظات</button>
+    </div>
+  </header>
+
+  <main class="page-shell no-print">
+    <section class="notice-card">
+      <strong>نسخة مستقلة:</strong>
+      تعمل مباشرة على GitHub Pages، وتحفظ بيانات المنشأة والفواتير داخل هذا الجهاز فقط.
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <span class="step">1</span>
+        <div>
+          <h2>بيانات المنشأة</h2>
+          <p>البيانات الأساسية مثبتة ولا تحتاج لإدخالها كل مرة.</p>
+        </div>
+      </div>
+
+      <div class="business-grid">
+        <div class="business-card">
+          <span>اسم المنشأة</span>
+          <strong id="businessNameView">مؤسسة يوسف عيد المطيري لقطع غيار السيارات</strong>
+        </div>
+        <div class="business-card">
+          <span>السجل التجاري</span>
+          <strong id="businessCrView">7054534024</strong>
+        </div>
+        <div class="business-card business-card-wide">
+          <span>الموقع</span>
+          <strong id="businessAddressView">C2MH+P5، الصناعية، حفر الباطن 39925</strong>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid-2 top-gap">
+        <label class="field">
+          <span>الرقم الضريبي <small>(اختياري)</small></span>
+          <input id="sellerVatNumber" inputmode="numeric" maxlength="15" autocomplete="off" placeholder="أدخل الرقم الضريبي إن وجد">
+          <small class="hint">يُستخدم في رمز QR وبيانات الفاتورة.</small>
+        </label>
+        <label class="field">
+          <span>شعار المنشأة <small>(اختياري)</small></span>
+          <input id="logoUpload" type="file" accept="image/png,image/jpeg,image/webp">
+          <small class="hint" id="logoStatus">PNG أو JPG أو WebP، بحد أقصى 2 ميجابايت.</small>
+        </label>
+      </div>
+      <div class="logo-preview-wrap" id="logoPreviewWrap" hidden>
+        <img id="logoPreview" alt="معاينة شعار المنشأة">
+        <button class="text-button danger" id="removeLogoBtn" type="button">حذف الشعار</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <span class="step">2</span>
+        <div>
+          <h2>معلومات الفاتورة</h2>
+          <p>أدخل رقم الفاتورة وتاريخها وإعدادات الضريبة.</p>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid-3">
+        <label class="field">
+          <span>عنوان الفاتورة</span>
+          <input id="invoiceTitle" value="فاتورة ضريبية مبسطة" maxlength="80">
+        </label>
+        <label class="field">
+          <span>رقم الفاتورة</span>
+          <input id="invoiceNumber" maxlength="40">
+        </label>
+        <label class="field">
+          <span>تاريخ الفاتورة</span>
+          <input id="invoiceDate" type="date">
+        </label>
+      </div>
+
+      <div class="tax-row top-gap">
+        <label class="switch-field">
+          <input id="taxIncluded" type="checkbox" checked>
+          <span class="switch"></span>
+          <span>سعر الوحدة شامل الضريبة</span>
+        </label>
+        <label class="field compact-field">
+          <span>نسبة الضريبة</span>
+          <div class="input-suffix">
+            <input id="taxRate" type="number" min="0" max="100" step="0.01" value="15">
+            <b>%</b>
+          </div>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading section-heading-actions">
+        <div class="heading-main">
+          <span class="step">3</span>
+          <div>
+            <h2>بنود الفاتورة</h2>
+            <p>أضف رقم القطعة والوصف والكمية والسعر.</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="addItemBtn" type="button">+ إضافة بند</button>
+      </div>
+
+      <div class="table-scroll">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>رقم القطعة</th>
+              <th>الوصف</th>
+              <th>الكمية</th>
+              <th>سعر الوحدة</th>
+              <th>قبل الضريبة</th>
+              <th>الضريبة</th>
+              <th>الإجمالي</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="summary-wrap">
+        <div class="summary-card">
+          <div><span>المجموع قبل الضريبة</span><strong id="subtotalAmount">0.00 ريال</strong></div>
+          <div><span>ضريبة القيمة المضافة</span><strong id="taxAmount">0.00 ريال</strong></div>
+          <div class="summary-total"><span>الإجمالي شامل الضريبة</span><strong id="totalAmount">0.00 ريال</strong></div>
+        </div>
+      </div>
+
+      <label class="field top-gap">
+        <span>ملاحظات أو شروط الفاتورة <small>(اختياري)</small></span>
+        <textarea id="invoiceTerms" rows="3" maxlength="600" placeholder="مثال: البضاعة المباعة لا تُرد إلا حسب سياسة المنشأة."></textarea>
+      </label>
+    </section>
+
+    <section class="panel action-panel">
+      <div class="qr-preview">
+        <canvas id="qrCanvas" width="160" height="160" aria-label="رمز QR للفاتورة"></canvas>
+        <p id="qrHint">أدخل الرقم الضريبي لإظهار رمز QR.</p>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-primary" id="savePdfBtn" type="button">حفظ PDF</button>
+        <button class="btn btn-whatsapp" id="sharePdfBtn" type="button">مشاركة PDF</button>
+        <button class="btn btn-light" id="printBtn" type="button">طباعة</button>
+        <button class="btn btn-outline" id="newInvoiceBtn" type="button">فاتورة جديدة</button>
+      </div>
+      <p class="action-note" id="actionStatus" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="site-footer no-print">
+    <strong>مؤسسة يوسف عيد المطيري لقطع غيار السيارات</strong>
+    <span>السجل التجاري: 7054534024</span>
+  </footer>
+
+  <div class="modal no-print" id="historyModal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <header class="modal-header">
+        <div>
+          <h2 id="historyTitle">الفواتير المحفوظة</h2>
+          <p>محفوظة داخل هذا الجهاز فقط.</p>
+        </div>
+        <button class="icon-button" id="closeHistoryBtn" type="button" aria-label="إغلاق">×</button>
+      </header>
+      <div class="history-list" id="historyList"></div>
+    </section>
+  </div>
+
+  <div id="invoicePrintContainer" class="invoice-print-container" aria-hidden="true"></div>
+
+  <script src="assets/vendor/qrcode.min.js"></script>
+  <script src="assets/vendor/html2canvas.min.js"></script>
+  <script src="assets/vendor/jspdf.umd.min.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
